@@ -20,9 +20,25 @@ for year in os.listdir(directory):
 files.sort()  # Sort to ensure files are in chronological order
 
 # # Step 4: Use xarray to open and concatenate the NetCDF files
-combined_ds_concat = xr.concat([xr.open_dataset(f) for f in files], dim='time')
+# combined_ds_concat = xr.concat([xr.open_dataset(f) for f in files], dim='time')
+
+# # Sort the time index to ensure it's monotonic
+# combined_ds_concat = combined_ds_concat.sortby('time')
+
+from tqdm import tqdm
+import xarray as xr
+
+# Step 4: Use tqdm to show progress of opening datasets
+datasets = []
+for f in tqdm(files, desc="Opening NetCDF files"):
+    datasets.append(xr.open_dataset(f))
+
+# Concatenate with tqdm tracking
+combined_ds_concat = xr.concat(tqdm(datasets, desc="Concatenating datasets"), dim='time')
+
 # Sort the time index to ensure it's monotonic
 combined_ds_concat = combined_ds_concat.sortby('time')
+
 
 # # Step 5: Save the concatenated dataset to a new NetCDF file
 output_path = r'/teamspace/studios/this_studio/spatial-extremes/data/2/NL16_2_4km_1999_2010.nc'
