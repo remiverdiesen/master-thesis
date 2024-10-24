@@ -90,9 +90,10 @@ def fit_gpd_margins(obs: np.ndarray, threshold: float, output_file_path: str) ->
 # Define a threshold for GPD fitting (adjust based on your analysis needs)
 threshold = 0.01  # Example threshold value
 
-fp = f'.data\{EXPERIMENT}\{dataset}.nc'
+fp = f'.\data\{EXPERIMENT}\{dataset}.nc'
 ds = xr.open_dataset(fp)
-Z_obs = ds['Pr'].values
+var_name = list(ds.data_vars)[0]
+Z_obs = ds[var_name].values
 
 file_path = f'.\experiments\{EXPERIMENT}\gpd_params.txt'
 fit_gpd_margins(Z_obs, threshold, file_path)

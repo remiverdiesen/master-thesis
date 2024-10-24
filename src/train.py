@@ -18,8 +18,8 @@ from utils import weights_init, update_ema, compute_EC_loss, plot_loss_curve
 # Set up logging
 # =============================================================================
 logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(levelname)s - line: %(lineno)d - %(message)s - in %(funcName)s()"
+    level=logging.INFO,
+    format="%(levelname)s - line: %(lineno)d - %(message)s "
 )
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 def train():
-    logger.info("\n\n\n Training the evtGAN...\n")
+    logger.info("\n\n\n Setting up the confi...\n")
     config = Config(train=True)
     Config.save_config(config)
 
@@ -56,7 +56,6 @@ def train():
 
     # Prepare data
     train_set = datasets.U_train
-    val_set = datasets.U_val
     n_train = train_set.shape[0]
     batch_size = config.batch_size
 
@@ -68,6 +67,7 @@ def train():
     # Initialize lists to store loss values per epoch
     generator_losses = []
     discriminator_losses = []
+    logger.info(f"\n\n\n Traingin the {config.model}-GAN...\n")
     # Training loop
     num_batches = n_train // batch_size
     for epoch in range(config.train_epoch):

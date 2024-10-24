@@ -24,7 +24,7 @@ class DataHandler:
     ids_EU: np.ndarray = field(init=False, default=None)
     ids_: np.ndarray = field(init=False, default=None)
     pos_coordinates: np.ndarray = field(init=False, default=None)
-    GEV_params: np.ndarray = field(init=False, default=None)
+    params: np.ndarray = field(init=False, default=None)
 
     # Observations \mathbf{Z}_i
     Z_train: np.ndarray = field(init=False, default=None)   
@@ -67,10 +67,11 @@ class DataHandler:
             self.Z_train = torch.tensor(train_set, dtype=torch.float32)
             self.Z_test  = torch.tensor(test_set, dtype=torch.float32)
             
-     
-            self.GEV_params = self.get_gev_params(self.config, Z_obs.shape[1], Z_obs.shape[2])
-            logger.debug(f"Fitted GEV distribution to observations.")
 
+            
+            self.params = self.get_params(self.config, Z_obs.shape[1], Z_obs.shape[2])
+            logger.debug(f"Got distribution to observations.")
+      
             # Normalize margins
             if self.config.use_empirical_cdf:
                 train_set = self.normalize_margins_empirical(train_set)
@@ -131,11 +132,10 @@ class DataHandler:
             logger.error(f"Error in prepare_data: {e}")
             raise e
 
-    def get_gev_params(self, config, n_lat: int, n_lon: int) -> np.ndarray:
-
-        file_path = config.GEV_params_file_path
+    def get_params(self, config, n_lat: int, n_lon: int) -> np.ndarray:
+        file_path = config.params_file_path
         # Initialize the GEV_params array
-        GEV_params = np.zeros((n_lat, n_lon, 3))
+        params = np.zeros((n_lat, n_lon, 3))
 
         # Read the file and extract GEV parameters
         with open(file_path, 'r', encoding='utf-8') as file:
@@ -144,16 +144,17 @@ class DataHandler:
                 line = line.strip()
                 if not line:
                     continue  # skip empty lines
-                grid_info, params = line.split(':')
+
+                grid_info, values = line.split(':')
                 i, j = eval(grid_info)  # Get grid indices (1-based)
-                shape, loc, scale = map(float, params.split(','))  # Get shape, loc, scale values
+                shape, loc, scale = map(float, values.split(','))  # Get shape, loc, scale values
                 
                 # Store in GEV_params (convert 1-based to 0-based indexing)
-                GEV_params[i-1, j-1, 0] = shape
-                GEV_params[i-1, j-1, 1] = loc
-                GEV_params[i-1, j-1, 2] = scale
+                params[i-1, j-1, 0] = shape
+                params[i-1, j-1, 1] = loc
+                params[i-1, j-1, 2] = scale
 
-        return GEV_params
+        return params
     
     def normalize_margins_empirical(self, obs: np.ndarray) -> np.ndarray:
         """

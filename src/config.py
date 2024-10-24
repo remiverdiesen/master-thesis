@@ -14,8 +14,8 @@ class Config:
 
 
     #####################################################################################################
-    experiment: int = 2
-    model_type: str = 'GEV' # 'GEV' or 'GPD'
+    experiment: int = 1
+    model_type: str = 'GPD' # 'GEV' or 'GPD'
     #####################################################################################################
 
     root_dir: str = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -27,12 +27,12 @@ class Config:
     evaluation_dir: str = os.path.join(results_dir, 'evaluation')
 
     #####################################################################################################
-    params_file_path: str = os.path.join(data_dir, f'{model_type}_params.txt')
+    params_file_path: str = os.path.join(exp_dir,'params', f'{model_type}_params.txt')
     #####################################################################################################
 
     
     # Data files
-    data_file: str = os.path.join(data_dir, 'precipitaiton_maxima.nc')
+    data_file: str = os.path.join(data_dir, 'precipitation_maxima.nc')
     ids_file: str = os.path.join(data_dir, 'ids.txt')
     #####################################################################################################
 
@@ -45,7 +45,7 @@ class Config:
     n_test_percent:  int         = 80
 
     noise_dim: int      = 100
-    train_epoch: int    = 500
+    train_epoch: int    = 10
     decay_lab: int      = 90
     n_sub_ids: int      = 25
     smooth_factor: float = 0.1
