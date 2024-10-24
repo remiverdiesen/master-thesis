@@ -156,8 +156,8 @@ def train():
             model_dir = config.models_dir
             if not os.path.exists(model_dir):
                 os.makedirs(model_dir)
-            torch.save(netG.state_dict(), os.path.join(model_dir, f'netG_epoch_{epoch+1}.pth'))
-            torch.save(netD.state_dict(), os.path.join(model_dir, f'netD_epoch_{epoch+1}.pth'))
+            torch.save(netG.state_dict(), os.path.join(model_dir,f'{config.model_type}-GAN', f'netG_epoch_{epoch+1}.pth'))
+            torch.save(netD.state_dict(), os.path.join(model_dir,f'{config.model_type}-GAN', f'netD_epoch_{epoch+1}.pth'))
             logger.info(f"Saved models at epoch {epoch+1}")
 
     # Plot the loss curve

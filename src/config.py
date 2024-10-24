@@ -21,7 +21,7 @@ class Config:
     root_dir: str = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     exp_dir: str = os.path.join(root_dir, 'experiments', f'{experiment}')
     data_dir: str = os.path.join(root_dir, 'data', f'{experiment}')
-    models_dir: str = os.path.join(exp_dir, 'models')
+    models_dir: str = os.path.join(exp_dir, 'model')
     results_dir: str = os.path.join(exp_dir, 'results') 
     figures_dir: str = os.path.join(results_dir, 'figures')
     evaluation_dir: str = os.path.join(results_dir, 'evaluation')
