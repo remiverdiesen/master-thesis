@@ -17,3 +17,13 @@ Source: Application Paper: Boulaguiem et al. (2022) - Modeling and simulating sp
 ### Discriminator
 
 ![Discriminator](figures/Discriminator.jpg)
+
+
+
+
+### commands lightning 
+'unset GITHUB_TOKEN'
+'git config --global user.name "remiverdiesen"'
+'git config --global user.email "remi.verdiesen@hetnet.nl"'
+'gh auth login'
+'git clone https://github.com/remiverdiesen/spatial-extremes.git'
