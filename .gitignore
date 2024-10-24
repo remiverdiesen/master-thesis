@@ -2,7 +2,7 @@
 .venv/*
 
 #   
-.data/*
+data/*
 # Ignore VSCode settings
 .vscode/
 
