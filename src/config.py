@@ -45,7 +45,7 @@ class Config:
     n_test_percent:  int         = 80
 
     noise_dim: int      = 100
-    train_epoch: int    = 10
+    train_epoch: int    = 500
     decay_lab: int      = 90
     n_sub_ids: int      = 25
     smooth_factor: float = 0.1
