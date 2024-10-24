@@ -16,4 +16,4 @@ Source: Application Paper: Boulaguiem et al. (2022) - Modeling and simulating sp
 
 ### Discriminator
 
-![Discriminator](figures/Discriminator.jpeg)
+![Discriminator](figures/Discriminator.jpg)
