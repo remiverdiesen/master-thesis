@@ -47,21 +47,13 @@ class DataHandler:
             self.data = xr.open_dataset(self.config.data_file)
             var_name = list(self.data.data_vars)[0]
 
-            # # Resample the dataset to hourly frequency and compute the maximum within each hour
-            # ds = self.data.resample(time='1h').max()
-
             # Extract the desired variable values, assuming it's named 'Pr'
             Z_obs = self.data[var_name].values
+            logger.debug(f"Loaded observation data with shape {Z_obs.shape}.") 
 
-
-            # last values in data ar Nan, so discard them
-            # Z_obs = self.data[var_name].values[:-49, :, :]
-            logger.debug(f"Loaded observation data with shape {Z_obs.shape}.") # shape = (1950, 18, 22)
-
-            
             # Load IDs
             self.ids_EU = np.genfromtxt(self.config.ids_file, delimiter=',', skip_header=1, dtype=int)
-            logger.debug(f"Loaded IDs with shape {self.ids_EU.shape}.") # shape = (396, 2)
+            logger.debug(f"Loaded IDs with shape {self.ids_EU.shape}.") 
 
             # Prepare data
             n_train = self.config.n_train_percent * Z_obs.shape[0] // 100
@@ -75,12 +67,8 @@ class DataHandler:
             self.Z_train = torch.tensor(train_set, dtype=torch.float32)
             self.Z_test  = torch.tensor(test_set, dtype=torch.float32)
             
-            # Fit GEV distribution to data
-            if self.config.train:
-                self.fit_gev_margins(Z_obs)
-                # self.fit_gev_margins(Z_obs)
-            else:
-                self.GEV_params = self.get_gev_params(self.config, Z_obs.shape[1], Z_obs.shape[2])
+     
+            self.GEV_params = self.get_gev_params(self.config, Z_obs.shape[1], Z_obs.shape[2])
             logger.debug(f"Fitted GEV distribution to observations.")
 
             # Normalize margins
@@ -104,15 +92,15 @@ class DataHandler:
 
             train_set = train_set.reshape(-1, *X_dim)
             test_set = test_set.reshape(-1, *X_dim)
-            logger.debug(f"Reshaped train to {train_set.shape}") # shape = (390,  18, 22, 1)
-            logger.debug(f"Reshaped test to  {test_set.shape}")  # shape = (1560, 18, 22, 1)
+            logger.debug(f"Reshaped train to {train_set.shape}") 
+            logger.debug(f"Reshaped test to  {test_set.shape}")  
 
             # Pad data
             pad = 1
             train_set = np.pad(train_set, ((0, 0), (pad, pad), (pad, pad), (0, 0)), 'constant', constant_values=0)
             test_set = np.pad(test_set, ((0, 0), (pad, pad), (pad, pad), (0, 0)), 'constant', constant_values=0)
-            logger.debug(f"Padded train to   {train_set.shape}") # shape = (390,  20, 24, 1)
-            logger.debug(f"Padded test to    {test_set.shape}")  # shape = (1560, 20, 24, 1)
+            logger.debug(f"Padded train to   {train_set.shape}") 
+            logger.debug(f"Padded test to    {test_set.shape}")  
 
             # Convert to torch tensors
             train_set = torch.tensor(train_set, dtype=torch.float32)
@@ -122,8 +110,8 @@ class DataHandler:
             # Rearrange dimensions from (N, H, W, C) to (N, C, H, W)
             train_set = train_set.permute(0, 3, 1, 2)
             test_set  = test_set.permute(0, 3, 1, 2)
-            logger.debug(f"Train tensor shape: {train_set.shape}") # shape = (390,  1, 20, 24)
-            logger.debug(f"Test tensor shape:  {test_set.shape}")  # shape = (1560, 1, 20, 24)
+            logger.debug(f"Train tensor shape: {train_set.shape}") 
+            logger.debug(f"Test tensor shape:  {test_set.shape}")  
 
             # Move data to device
             self.U_train = train_set.to(self.device)
@@ -142,39 +130,6 @@ class DataHandler:
         except Exception as e:
             logger.error(f"Error in prepare_data: {e}")
             raise e
-
-    def fit_gev_margins(self, obs: np.ndarray) -> None:
-        """
-        Fit GEV distribution to each grid point of the input data.
-        """
-        # To store shape (ξ), loc (μ), scale (σ) for each grid point
-        n_lat, n_lon = obs.shape[1], obs.shape[2]
-        GEV_params = np.zeros((n_lat, n_lon, 3))
-
-        # Save GEV parameters to file
-        with open(self.config.GEV_params_file_path, 'w') as file:
-            # Iterate over grid points
-            for i in range(n_lat):
-                for j in range(n_lon):
-                    time_series = obs[:, i, j]
-                    # Handle missing or invalid data
-                    if np.any(np.isnan(time_series)):
-                        GEV_params[i, j, :] = np.nan
-                        continue
-                    # Fit the GEV distribution to the time series
-                    try:
-                        # shape, loc, scale = genextreme.fit(time_series, method='MLE')
-                        shape, loc, scale = genextreme.fit(time_series, method='mm')
-                    except Exception as e:
-                        logger.warning(f"Could not fit GEV to grid point ({i}, {j}): {e}")
-                        GEV_params[i, j, :] = np.nan
-                        continue
-                    GEV_params[i, j, 0] = shape # All real number; typically -0.5 < shape < 1
-                    GEV_params[i, j, 1] = loc   # All real number
-                    GEV_params[i, j, 2] = scale # Positive real number
-                    file.write(f"({i+1}, {j+1}): {shape:.4f},  {loc:.4f}, {scale:.4f}\n")
-        self.GEV_params = GEV_params
-        logger.info(f"Saved GEV parameters for each grid points to {self.config.GEV_params_file_path}.")
 
     def get_gev_params(self, config, n_lat: int, n_lon: int) -> np.ndarray:
 

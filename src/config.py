@@ -11,26 +11,37 @@ class Config:
     """
     train: bool
     # Paths
+
+
+    #####################################################################################################
+    experiment: int = 2
+    model_type: str = 'GEV' # 'GEV' or 'GPD'
+    #####################################################################################################
+
     root_dir: str = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-
-    root_dir: str = os.path.join(root_dir, 'experiments', '2')
-    data_dir: str = os.path.join(root_dir, 'data')
-
-    models_dir: str = os.path.join(root_dir, 'models')
-    results_dir: str = os.path.join(root_dir, 'results') 
+    exp_dir: str = os.path.join(root_dir, 'experiments', f'{experiment}')
+    data_dir: str = os.path.join(root_dir, 'data', f'{experiment}')
+    models_dir: str = os.path.join(exp_dir, 'models')
+    results_dir: str = os.path.join(exp_dir, 'results') 
     figures_dir: str = os.path.join(results_dir, 'figures')
     evaluation_dir: str = os.path.join(results_dir, 'evaluation')
-    GEV_params_file_path: str = os.path.join(data_dir, 'GEV_params.txt')
 
+    #####################################################################################################
+    params_file_path: str = os.path.join(data_dir, f'{model_type}_params.txt')
+    #####################################################################################################
+
+    
     # Data files
-    data_file: str = os.path.join(data_dir, 'precipitaiton_maxima_2018.nc')
+    data_file: str = os.path.join(data_dir, 'precipitaiton_maxima.nc')
     ids_file: str = os.path.join(data_dir, 'ids.txt')
+    #####################################################################################################
+
 
     # Device configuration
     device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Hyperparameters
-    n_train_percent: int         = 20 #NOTE Percentage of dataset 
+    n_train_percent: int         = 20 # NOTE Percentage of dataset 
     n_test_percent:  int         = 80
 
     noise_dim: int      = 100
@@ -53,7 +64,7 @@ class Config:
 
     # Options
     use_empirical_cdf: bool = True  # If False, use fitted GEV CDFs
-    use_EC_regul: bool = False  # If True, use EC regularization
+    use_EC_regul: bool = False      # If True, use EC regularization
 
     @staticmethod
     def save_config(config, filename: str = "config.txt") -> None:
@@ -63,7 +74,7 @@ class Config:
         :param config: Configuration object.
         :param filename: Name of the file to save the configurations.
         """
-        filepath = os.path.join(config.results_dir, filename)
+        filepath = os.path.join(config.exp_dir, filename)
         with open(filepath, "w") as f:
             for attr, value in vars(config).items():
                 f.write(f"{attr} = {value}\n")
