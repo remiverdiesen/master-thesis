@@ -4,18 +4,18 @@ from concurrent.futures import ThreadPoolExecutor
 from scipy.stats import genpareto
 from tqdm import tqdm
 import logging
-
+from concurrent.futures import ProcessPoolExecutor
 logger = logging.getLogger(__name__)
 
 
 ##################################################################
 
-EXPERIMENT = 1
+EXPERIMENT = 2
 
 if EXPERIMENT == 1:
     dataset = 'precipitation_maxima'
 elif EXPERIMENT == 2:
-    dataset = 'NL26_2km_5min'
+    dataset = 'NL16_2_4km_1999_2010'
 elif EXPERIMENT == 3:
     dataset = 'NL26_10km_24h'
 
@@ -43,7 +43,18 @@ def fit_gpd_to_grid_point(time_series, threshold):
         logger.warning(f"Could not fit GPD to time series: {e}")
         return np.nan, np.nan, np.nan
 
-def fit_gpd_margins(obs: np.ndarray, threshold: float, output_file_path: str) -> np.ndarray:
+# Move the helper function to a global scope
+def process_grid_point(args):
+    """
+    Helper function to fit GPD to a grid point.
+    Args is a tuple (obs, threshold, i, j)
+    """
+    obs, threshold, i, j = args
+    time_series = obs[:, i, j]
+    shape, loc, scale = fit_gpd_to_grid_point(time_series, threshold)
+    return (i, j, shape, loc, scale)
+
+def fit_gpd_margins(obs: np.ndarray, threshold: float, output_file_path: str):
     """
     Fit GPD distribution to each grid point of the input data in parallel.
 
@@ -59,17 +70,10 @@ def fit_gpd_margins(obs: np.ndarray, threshold: float, output_file_path: str) ->
     GPD_params = np.zeros((n_lat, n_lon, 3))
 
     # Flatten the grid indices for easier parallel processing
-    indices = [(i, j) for i in range(n_lat) for j in range(n_lon)]
+    indices = [(obs, threshold, i, j) for i in range(n_lat) for j in range(n_lon)]
 
-    # Define a helper function to fit GPD for a single grid point and update results
-    def process_grid_point(index):
-        i, j = index
-        time_series = obs[:, i, j]
-        shape, loc, scale = fit_gpd_to_grid_point(time_series, threshold)
-        return (i, j, shape, loc, scale)
-
-    # Use ThreadPoolExecutor for parallel processing
-    with ThreadPoolExecutor() as executor:
+    # Use ProcessPoolExecutor for parallel processing
+    with ProcessPoolExecutor(max_workers=32) as executor:
         # Wrap the executor.map call with tqdm for progress tracking
         results = list(tqdm(executor.map(process_grid_point, indices), total=len(indices), desc="Fitting GPD"))
 
@@ -87,13 +91,14 @@ def fit_gpd_margins(obs: np.ndarray, threshold: float, output_file_path: str) ->
                 file.write(f"({i+1}, {j+1}): {shape:.4f}, {loc:.4f}, {scale:.4f}\n")
 
 
+
 # Define a threshold for GPD fitting (adjust based on your analysis needs)
 threshold = 0.01  # Example threshold value
 
-fp = f'.\data\{EXPERIMENT}\{dataset}.nc'
-ds = xr.open_dataset(fp)
+fp = f'spatial-extremes/data/{EXPERIMENT}/{dataset}.nc'
+ds = xr.open_dataset(fp, chunks={'time': 1000})  # Adjust chunks to optimal sizes for your case
 var_name = list(ds.data_vars)[0]
 Z_obs = ds[var_name].values
 
-file_path = f'.\experiments\{EXPERIMENT}\gpd_params.txt'
+file_path = f'spatial-extremes/experiments/{EXPERIMENT}/GPD_params.txt'
 fit_gpd_margins(Z_obs, threshold, file_path)

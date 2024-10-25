@@ -24,35 +24,11 @@ combined_ds = xr.open_mfdataset(
     files,
     concat_dim='time',
     combine='nested',
-    parallel=True,
     engine='netcdf4'
 )
 
-# Dynamically determine dimension sizes
-dim_time = combined_ds.dims['time']
-dim_lat = combined_ds.dims['lat']
-dim_lon = combined_ds.dims['lon']
-
-# Define target chunk size in bytes (adjustable, here set to 100 MB for large memory utilization)
-target_chunk_size_bytes = 100 * 1024 * 1024  # 100 MB
-
-# Helper function for chunk size calculation based on target memory
-def calculate_chunk_size(dim_size, data_type_size, target_size):
-    max_elements = target_size // data_type_size
-    chunk_size = min(dim_size, max(max_elements, 1))
-    return chunk_size
-
-# Get the dtype sizes for the variables
-dtype_size_float32 = 4  # 4 bytes for float32
-dtype_size_int16 = 2    # 2 bytes for int16
-
-# Calculate chunk sizes for larger memory utilization
-time_chunk_size = calculate_chunk_size(dim_time, dtype_size_float32 * dim_lat * dim_lon, target_chunk_size_bytes)
-lat_chunk_size = calculate_chunk_size(dim_lat, dtype_size_float32 * dim_lon, target_chunk_size_bytes)
-lon_chunk_size = calculate_chunk_size(dim_lon, dtype_size_float32, target_chunk_size_bytes)
-
 # Step 5: Save the concatenated dataset to a new NetCDF file with optimal settings
-output_path = r'/teamspace/studios/this_studio/spatial-extremes/data/2/precip_2.4km_2010-2020_Annual_5min.nc'
+output_path = r'/teamspace/studios/this_studio/spatial-extremes/data/2/precip_2.4km_2010-2020_Annual_5min_2.nc'
 combined_ds.to_netcdf(
     output_path,
     engine='netcdf4',
@@ -61,38 +37,37 @@ combined_ds.to_netcdf(
             'dtype': 'float32',
             'zlib': True,
             'complevel': 7,  # Higher compression for disk efficiency
-            'shuffle': True,
-            'chunksizes': (lon_chunk_size,)
+            'shuffle': True
+
         },
         'lat': {
             'dtype': 'float32',
             'zlib': True,
             'complevel': 7,
-            'shuffle': True,
-            'chunksizes': (lat_chunk_size,)
+            'shuffle': True
+
         },
         'i': {
             'dtype': 'int16',
             'zlib': True,
             'complevel': 7,
-            'shuffle': True,
-            'chunksizes': (lon_chunk_size,)
+            'shuffle': True
+
         },
         'j': {
             'dtype': 'int16',
             'zlib': True,
             'complevel': 7,
-            'shuffle': True,
-            'chunksizes': (lat_chunk_size,)
+            'shuffle': True
+
         },
         'Pr': {
             'dtype': 'float32',
             'zlib': True,
             'complevel': 7,
-            'shuffle': True,
+            'shuffle': True
             # Dynamically calculated chunk sizes for Pr
-            'chunksizes': (time_chunk_size, lat_chunk_size, lon_chunk_size),
-            'use_mmap': True  # Enable memory-mapped I/O if supported
+
         }
     }
 )
