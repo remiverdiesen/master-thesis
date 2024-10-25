@@ -27,7 +27,12 @@ def test():
     netG = Generator(config.noise_dim, batch_norm=config.batch_norm).to(config.device)
 
     ###################################################################################################
-    model_path = config.models_dir + '\\epoch500_ECDF_EC_False\\netG_final.pth'
+    model_path = config.models_dir + '\\GEV-GAN\\netG_final.pth'
+
+
+
+
+
     ###################################################################################################
 
     netG.load_state_dict(torch.load(model_path, weights_only=True, map_location=config.device))
@@ -74,7 +79,7 @@ def test():
     U_samples = (U_samples + 1) / 2  
     logger.debug(f"After Normalization: U_samples min: {U_samples.min()}, max: {U_samples.max()}") 
 
-    # TODO : Transform generated samples back to original scale using inverse GEV CDFs OR empirical CDF
+    # Transform generated samples back to original scale using inverse GEV\GPD CDFs OR empirical CDF
     Z_generated = inverse_transform(U_samples, data_handler.Z_train, data_handler.params, data_handler.ids_, config)
     logger.info("Transformed generated samples back to original scale.")
 

@@ -21,8 +21,7 @@ class DataHandler:
     config: Config
     device: torch.device = field(init=False)
     data: Any = field(init=False, default=None)
-    ids_EU: np.ndarray = field(init=False, default=None)
-    ids_: np.ndarray = field(init=False, default=None)
+    ids: np.ndarray = field(init=False, default=None)
     pos_coordinates: np.ndarray = field(init=False, default=None)
     params: np.ndarray = field(init=False, default=None)
 
@@ -52,8 +51,8 @@ class DataHandler:
             logger.debug(f"Loaded observation data with shape {Z_obs.shape}.") 
 
             # Load IDs
-            self.ids_EU = np.genfromtxt(self.config.ids_file, delimiter=',', skip_header=1, dtype=int)
-            logger.debug(f"Loaded IDs with shape {self.ids_EU.shape}.") 
+            self.ids = np.genfromtxt(self.config.ids_file, delimiter=',', skip_header=1, dtype=int)
+            logger.debug(f"Loaded IDs with shape {self.ids.shape}.") 
 
             # Prepare data
             n_train = self.config.n_train_percent * Z_obs.shape[0] // 100
@@ -121,8 +120,8 @@ class DataHandler:
 
             # Adjust indices for padding
             pad_adjust = pad
-            self.ids_ = self.ids_EU + pad_adjust  # Adjust for padding
-            self.ids_ = self.ids_[:, [1, 0]]      # Now ids_ is in (latitude, longitude) order
+            self.ids = self.ids + pad_adjust  # Adjust for padding
+            self.ids = self.ids[:, [1, 0]]      # Now ids_ is in (latitude, longitude) order
 
             # Prepare position coordinates for EC computation
             self.pos_coordinates = self.pos_coords(self.config.n_sub_ids)
