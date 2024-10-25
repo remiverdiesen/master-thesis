@@ -5,18 +5,18 @@ Source: Application Paper: Boulaguiem et al. (2022) - Modeling and simulating sp
 
 ### Experiments
 
-![Experiments](figures/Experiments.jpg)
+![Experiments](docs/images/Experiments.jpg)
 
 
 ## Architecture evtGAN
 
 ### Generator
 
-![Generator](figures/Generator.jpg)
+![Generator](docs/images/Generator.jpg)
 
 ### Discriminator
 
-![Discriminator](figures/Discriminator.jpg)
+![Discriminator](docs/images/Discriminator.jpg)
 
 
 ### linux command

@@ -5,30 +5,11 @@ from scipy.stats import genpareto
 from tqdm import tqdm
 import logging
 from concurrent.futures import ProcessPoolExecutor
-logger = logging.getLogger(__name__)
-
-
-##################################################################
-
-EXPERIMENT = 2
-
-if EXPERIMENT == 1:
-    dataset = 'precipitation_maxima'
-elif EXPERIMENT == 2:
-    dataset = 'NL16_2_4km_1999_2010'
-elif EXPERIMENT == 3:
-    dataset = 'NL26_10km_24h'
-
-
-##################################################################
 
 
 logger = logging.getLogger(__name__)
 
 def fit_gpd_to_grid_point(time_series, threshold):
-    """
-    Fit the GPD distribution to a single grid point time series above a given threshold.
-    """
     # Filter data above the threshold
     exceedances = time_series[time_series > threshold] - threshold
     
@@ -45,10 +26,6 @@ def fit_gpd_to_grid_point(time_series, threshold):
 
 # Move the helper function to a global scope
 def process_grid_point(args):
-    """
-    Helper function to fit GPD to a grid point.
-    Args is a tuple (obs, threshold, i, j)
-    """
     obs, threshold, i, j = args
     time_series = obs[:, i, j]
     shape, loc, scale = fit_gpd_to_grid_point(time_series, threshold)
@@ -59,8 +36,8 @@ def fit_gpd_margins(obs: np.ndarray, threshold: float, output_file_path: str):
     Fit GPD distribution to each grid point of the input data in parallel.
 
     Parameters:
-    - obs: A 3D numpy array with dimensions (time, lat, lon)
-    - threshold: Threshold value for fitting GPD
+    - obs:              A 3D numpy array with dimensions (time, lat, lon)
+    - threshold:        Threshold value for fitting GPD
     - output_file_path: Path to the file where GPD parameters will be saved
 
     Returns:
@@ -91,14 +68,26 @@ def fit_gpd_margins(obs: np.ndarray, threshold: float, output_file_path: str):
                 file.write(f"({i+1}, {j+1}): {shape:.4f}, {loc:.4f}, {scale:.4f}\n")
 
 
+####################################################################################
 
-# Define a threshold for GPD fitting (adjust based on your analysis needs)
-threshold = 0.01  # Example threshold value
+# precip_[Resolution]_[Time_Period]_[Season]_[Time_Interval].nc
 
-fp = f'spatial-extremes/data/{EXPERIMENT}/{dataset}.nc'
-ds = xr.open_dataset(fp, chunks={'time': 1000})  # Adjust chunks to optimal sizes for your case
+
+threshold = 0.01  
+EXPERIMENT = '2' 
+DATASET = 'precip_2.4km_
+
+dataset_file_path = f'spatial-extremes/data/{EXPERIMENT}/{DATASET}.nc'
+
+
+output_file_path = f'spatial-extremes/experiments/{EXPERIMENT}/GPD_params.txt'
+
+
+####################################################################################
+
+
+ds = xr.open_dataset(dataset_file_path)  
 var_name = list(ds.data_vars)[0]
 Z_obs = ds[var_name].values
 
-file_path = f'spatial-extremes/experiments/{EXPERIMENT}/GPD_params.txt'
-fit_gpd_margins(Z_obs, threshold, file_path)
+fit_gpd_margins(Z_obs, threshold, output_file_path)

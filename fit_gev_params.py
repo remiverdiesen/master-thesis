@@ -7,21 +7,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
- 
-##################################################################
-
-EXPERIMENT = 1
-
-if EXPERIMENT == 1:
-    dataset = 'precipitation_maxima'
-elif EXPERIMENT == 2:
-    dataset = 'NL26_2km_5min'
-elif EXPERIMENT == 3:
-    dataset = 'NL26_10km_24h'
-
-
-##################################################################
-
 
 def fit_gev_to_grid_point(time_series):
     """
@@ -37,7 +22,7 @@ def fit_gev_to_grid_point(time_series):
         logger.warning(f"Could not fit GEV to time series: {e}")
         return np.nan, np.nan, np.nan
 
-def fit_gev_margins(obs: np.ndarray, output_file_path: str) -> np.ndarray:
+def fit_gev_margins(obs: np.ndarray, output_file_path: str):
     """
     Fit GEV distribution to each grid point of the input data in parallel.
 
@@ -80,9 +65,24 @@ def fit_gev_margins(obs: np.ndarray, output_file_path: str) -> np.ndarray:
                 file.write(f"({i+1}, {j+1}): {shape:.4f}, {loc:.4f}, {scale:.4f}\n")
 
 
-fp = f'.data\{EXPERIMENT}\{dataset}.nc'
-ds = xr.open_dataset(fp)
-Z_obs = ds['Pr'].values
+####################################################################################
 
-file_path = f'.\experiments\{EXPERIMENT}\gev_params.txt'
-fit_gev_margins(Z_obs, file_path)
+# precip_[Resolution]_[Time_Period]_[Season]_[Time_Interval].nc
+ 
+EXPERIMENT = '2' 
+DATASET = 'precip_2.4km_
+
+dataset_file_path = f'spatial-extremes/data/{EXPERIMENT}/{DATASET}.nc'
+
+
+output_file_path = f'spatial-extremes/experiments/{EXPERIMENT}/GEV_params.txt'
+
+
+####################################################################################
+
+
+ds = xr.open_dataset(dataset_file_path)  
+var_name = list(ds.data_vars)[0]
+Z_obs = ds[var_name].values
+
+fit_gpd_margins(Z_obs, threshold, output_file_path)

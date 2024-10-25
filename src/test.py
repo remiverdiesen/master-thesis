@@ -25,7 +25,11 @@ def test():
 
     # Load the trained Generator
     netG = Generator(config.noise_dim, batch_norm=config.batch_norm).to(config.device)
+
+    ###################################################################################################
     model_path = config.models_dir + '\\epoch500_ECDF_EC_False\\netG_final.pth'
+    ###################################################################################################
+
     netG.load_state_dict(torch.load(model_path, weights_only=True, map_location=config.device))
     netG.eval()
     logger.info(f"Loaded the trained Generator!")
@@ -47,31 +51,31 @@ def test():
             U_ = netG(noise)
             U_samples.append(U_.cpu().numpy())
 
-    logger.debug(f"Last generated sample shape: {U_.shape}") # Should have shape = (50, 1, 20, 24) 
+    logger.debug(f"Last generated sample shape: {U_.shape}") 
 
     # Concatenate all generated samples
     U_samples = np.concatenate(U_samples, axis=0)
     logger.info(f"Succesfully generated {U_samples.shape[0]} samples!")
-    logger.debug(f"U_samples shape: {U_samples.shape}") # shape = (10000, 1, 20, 24)
+    logger.debug(f"U_samples shape: {U_samples.shape}") 
       
     pad = 1  # Adjust if padding is different	
     
     # Remove padding from samples
     U_samples = U_samples[:, :, pad:-pad, pad:-pad]
-    logger.debug(f"Removed padding from samples. New shape:   {U_samples.shape}") # shape = (10000, 1, 18, 22)
+    logger.debug(f"Removed padding from samples. New shape:   {U_samples.shape}") 
 
     # Squeeze the channel dimension
     U_samples = np.squeeze(U_samples, axis=1)
-    logger.debug(f"Squeezed the channel dimension. New shape: {U_samples.shape}") # shape = (10000, 18, 22)
+    logger.debug(f"Squeezed the channel dimension. New shape: {U_samples.shape}") 
     logger.debug(f"TEST: first generated sample: {U_samples[:, 0, 0]} ")          
-    logger.debug(f"U_samples min: {U_samples.min()}, max: {U_samples.max()}")     # min: -0.73, max: 1.55 
+    logger.debug(f"U_samples min: {U_samples.min()}, max: {U_samples.max()}")     
 
     # Normalize to (0, 1) if necessary 
     U_samples = (U_samples + 1) / 2  
-    logger.debug(f"After Normalization: U_samples min: {U_samples.min()}, max: {U_samples.max()}") # min: 0.13, max: 1.276
+    logger.debug(f"After Normalization: U_samples min: {U_samples.min()}, max: {U_samples.max()}") 
 
     # TODO : Transform generated samples back to original scale using inverse GEV CDFs OR empirical CDF
-    Z_generated = inverse_transform(U_samples, data_handler.Z_train, data_handler.GEV_params, data_handler.ids_, config.use_empirical_cdf)
+    Z_generated = inverse_transform(U_samples, data_handler.Z_train, data_handler.params, data_handler.ids_, config.use_empirical_cdf)
     logger.info("Transformed generated samples back to original scale.")
 
     assert Z_generated.shape == U_samples.shape, "Shape mismatch between Z_generated and U_samples"
@@ -93,7 +97,7 @@ def evaluate_generated_samples(Z_generated: np.ndarray, Z_test: np.ndarray, ids_
     # Assuming real_data is already in the same shape and without padding
     logger.debug(f"Z_test shape:       {Z_test.shape}")
     logger.debug(f"Z_generated shape:  {Z_generated.shape}")
-    logger.debug(f"GEV_params shape:   {GEV_params.shape}")
+    logger.debug(f"params shape:       {params.shape}")
     logger.debug(f"ids_ shape:         {ids_.shape}")
 
     # Create directories for evaluation results
@@ -129,8 +133,6 @@ def evaluate_generated_samples(Z_generated: np.ndarray, Z_test: np.ndarray, ids_
     logger.info(f"Wasserstein Distance: {round(wasserstein, 4)}")
     # give the rounden on 4 decimals
     
-
-    exit()
     # Visual inspection
     num_plots = 5
     for i in range(num_plots):
