@@ -17,6 +17,70 @@ import matplotlib.pyplot as plt  # Add this import for plotting
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
+def inverse_gpd(uniform, params):
+    """
+    Apply the inverse GPD transformation for given uniform values and GPD parameters.
+    
+    Parameters:
+    - uniform: array of uniform values in the open interval (0, 1)
+    - params: GPD parameters [xi, sigma, threshold]
+    
+    Returns:
+    - inv: Inverse transformed values on the original scale.
+    """
+
+    sigma, threshold, xi  = params
+
+    # Ensure uniform values are in the open interval (0, 1)
+    epsilon = np.finfo(float).eps  # Smallest positive float number
+    uniform = np.clip(uniform, epsilon, 1 - epsilon)
+
+    # Handle GPD case where xi == 0
+    if xi == 0:
+        inv = threshold + sigma * (-np.log(1 - uniform))
+    else:
+        inv = threshold + (sigma / xi) * ((1 - uniform) ** (-xi) - 1)
+    return inv
+
+def inverse_gpd_(dat_, params_):
+    """
+    Apply inverse GPD transformation to an entire dataset.
+    
+    Parameters:
+    - dat_: Generated uniform samples (n_samples, n_points)
+    - params_: GPD parameters for each point (n_points, 3)
+    
+    Returns:
+    - inversed_gpd: Inverse transformed values in original scale.
+    - min_unif, max_unif: Minimum and maximum uniform values.
+    - min_inv, max_inv: Minimum and maximum inverse-transformed values.
+    """
+    # Apply empirical CDF (uniform transformation)
+    uniform = np.apply_along_axis(
+        lambda x: (np.argsort(np.argsort(x)) + 1) / (len(x) + 1), axis=0, arr=dat_
+    )
+
+    min_unif = np.min(uniform)
+    max_unif = np.max(uniform)
+
+    # Debug the uniform output
+    assert 0 <= min_unif <= 1 and 0 <= max_unif <= 1, f"Uniform values out of range: [{min_unif}, {max_unif}]"
+
+    # Initialize inversed_gpd array
+    inversed_gpd = np.zeros_like(uniform)
+
+    # Apply inverse GPD transformation column-wise
+    for i in range(uniform.shape[1]):
+        inversed_gpd[:, i] = inverse_gpd(uniform[:, i], params_[i, :])
+
+    min_inv = np.min(inversed_gpd)
+    max_inv = np.max(inversed_gpd)
+
+    # Check for negative values (GPD can be negative depending on xi)
+    if np.any(inversed_gpd < 0):
+        print(f"Warning: Negative inverse-transformed values detected. Min value: {min_inv}")
+
+    return inversed_gpd, min_unif, max_unif, min_inv, max_inv
 
 def inverse_gev(uniform, params):
     """
@@ -79,7 +143,7 @@ def inverse_ecdf(dat_, train):
     Apply inverse ECDF transformation to the generated data using the empirical distribution of the training data.
     
     Parameters:
-    - dat_: Generated uniform samples (n_samples, n_points)
+    - dat_:  Generated uniform samples (n_samples, n_points)
     - train: Training data (n_points, n_observations) from which quantiles are computed.
     
     Returns:
@@ -93,14 +157,14 @@ def inverse_ecdf(dat_, train):
     
     return inversed_ecdf
 
-def inverse_transform(U_samples: np.ndarray, Z_train: np.ndarray, GEV_params: np.ndarray, ids_: np.ndarray, use_empirical_cdf: bool) -> np.ndarray:
+def inverse_transform(U_samples: np.ndarray, Z_train: np.ndarray, params: np.ndarray, ids_: np.ndarray, config) -> np.ndarray:
     """
     Transform generated samples back to original scale using inverse GEV CDFs OR empirical CDF.
     
     Parameters:
     - U_samples: Generated uniform samples (n_samples, n_lat, n_lon)
     - Z_train: Training data (n_train, n_lat, n_lon) for inverse ECDF transformation
-    - GEV_params: GEV parameters (n_lat, n_lon, 3) for inverse GEV transformation
+    - params:  parameters (n_lat, n_lon, 3) for inverse GEV transformation
     - ids_: Grid point indices (not used directly in this version)
     - use_empirical_cdf: Boolean flag to choose between empirical CDF and GEV transformation
     
@@ -108,7 +172,7 @@ def inverse_transform(U_samples: np.ndarray, Z_train: np.ndarray, GEV_params: np
     - Z_generated: Generated samples in the original scale (n_samples, n_lat, n_lon)
     """
     num_samples = U_samples.shape[0]
-    n_lat, n_lon = GEV_params.shape[0], GEV_params.shape[1]
+    n_lat, n_lon = params.shape[0], params.shape[1]
 
     logger.debug(f"Transforming {num_samples} samples back to original scale...")
 
@@ -116,17 +180,22 @@ def inverse_transform(U_samples: np.ndarray, Z_train: np.ndarray, GEV_params: np
     Z_generated = np.zeros_like(U_samples)
 
     # Inverse transform the generated samples back to the original scale
-    if use_empirical_cdf:
+    if config.use_empirical_cdf:
         # Apply inverse ECDF transformation (DCGAN)
         for i in range(n_lat):
             for j in range(n_lon):
                 Z_generated[:, i, j] = inverse_ecdf(U_samples[:, i, j], Z_train[:, i, j])
-    else:
+    elif config.model_type = 'GEV'
         # Apply inverse GEV transformation (evtGAN)
         for i in range(n_lat):
             for j in range(n_lon):
-                Z_generated[:, i, j], _, _, _, _ = inverse_gev_(U_samples[:, i, j], GEV_params[i, j, :])
-
+                Z_generated[:, i, j], _, _, _, _ = inverse_gev_(U_samples[:, i, j], arams[i, j, :])
+    
+    else config.model_type = 'GPD'
+        # Apply inverse GEV transformation (evtGAN)
+        for i in range(n_lat):
+            for j in range(n_lon):
+                Z_generated[:, i, j], _, _, _, _ = inverse_gpd_(U_samples[:, i, j], params[i, j, :])
     return Z_generated
 
 def weights_init(m: nn.Module) -> None:

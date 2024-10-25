@@ -75,7 +75,7 @@ def test():
     logger.debug(f"After Normalization: U_samples min: {U_samples.min()}, max: {U_samples.max()}") 
 
     # TODO : Transform generated samples back to original scale using inverse GEV CDFs OR empirical CDF
-    Z_generated = inverse_transform(U_samples, data_handler.Z_train, data_handler.params, data_handler.ids_, config.use_empirical_cdf)
+    Z_generated = inverse_transform(U_samples, data_handler.Z_train, data_handler.params, data_handler.ids_, config)
     logger.info("Transformed generated samples back to original scale.")
 
     assert Z_generated.shape == U_samples.shape, "Shape mismatch between Z_generated and U_samples"
