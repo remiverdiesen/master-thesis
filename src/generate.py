@@ -91,9 +91,9 @@ def generate():
     logger.debug(f"Generated samples shape: {Z_generated.shape}")
 
     # Store the generated samples
-    # period_generated_path = os.path.join(period_dir, f'{model_type}_generated_samples.npy')
+    period_generated_path = os.path.join(config.results_dir, f'{model_type}_generated_samples.npy')
     
-    # np.save(period_generated_path, Z_generated)
+    np.save(period_generated_path, Z_generated)
 
 
     logger.info("All samples successfully generated and stored.")

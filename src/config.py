@@ -9,7 +9,7 @@ class Config:
     # Configuration parameters with default values
     train: bool = True
     experiment: int = 1
-    model_type: str = 'GPD'  # 'GEV' or 'GPD'
+    model_type: str = 'GEV'  # 'GEV' or 'GPD'
     
     # Directories (initialized with defaults, will be overridden if reading from config file)
     root_dir: str = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))

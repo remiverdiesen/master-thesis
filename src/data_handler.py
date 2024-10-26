@@ -40,8 +40,11 @@ class DataHandler:
         if self.config.train:
             self.prepare_data()
 
-        # Load parameters regardless of training mode
-        self.params = self.get_params(self.config)
+        if self.config.model_type == 'eGPD':
+            self.params = self.get_eGPD_params(self.config)
+        else:
+            # Load parameters regardless of training mode
+            self.params = self.get_params(self.config)
 
     def prepare_data(self) -> None:
         """
@@ -141,10 +144,44 @@ class DataHandler:
         except Exception as e:
             logger.error(f"Error in prepare_data: {e}")
             raise e
+        
+    def get_eGPD_params(self, config) -> np.ndarray:
+        file_path = config.params_file_path
+        # Determine the maximum values of indices i and j
+        max_i, max_j = 0, 0
+        lines = []
+
+        # First pass to find grid size
+        with open(file_path, 'r', encoding='utf-8') as file:
+            for line in file:
+                line = line.strip()
+                if not line:
+                    continue  # Skip empty lines
+
+                grid_info, values = line.split(':')
+                i, j = eval(grid_info.strip())  # Get grid indices (1-based)
+                max_i = max(max_i, i)
+                max_j = max(max_j, j)
+                lines.append((i, j, values.strip()))
+
+        # Initialize the eGPD_params array based on the dynamic grid size (4 parameters per grid point)
+        params = np.zeros((max_i, max_j, 4))
+
+        # Second pass to fill the parameters array
+        for i, j, values in lines:
+            # Split and map the four parameters: shape, scale, threshold, probability of non-exceedance
+            shape, scale, threshold, p = map(float, values.split(','))
+
+            # Store in params (convert 1-based to 0-based indexing)
+            params[i - 1, j - 1, 0] = shape        # xi (shape)
+            params[i - 1, j - 1, 1] = scale        # sigma (scale)
+            params[i - 1, j - 1, 2] = threshold    # mu (threshold)
+            params[i - 1, j - 1, 3] = p            # p (probability of non-exceedance)
+
+        return params
 
     def get_params(self, config) -> np.ndarray:
         file_path = config.params_file_path
-        print(f"\n\n\nReading parameters from {file_path}\n\n\n")
         # Determine the maximum values of indices i and j
         max_i, max_j = 0, 0
         lines = []

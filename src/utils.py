@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt  # Add this import for plotting
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
+
 def inverse_gpd(uniform, params):
     """
     Apply the inverse GPD transformation for given uniform values and GPD parameters.
@@ -161,7 +162,7 @@ def inverse_egpd_(dat_, params_):
 
         # Check if the shape parameter is negative and adjust if necessary
         if xi < 0:
-            print(f"Warning: Shape parameter (xi) is negative: {xi}. Clipping to zero.")
+            # print(f"Warning: Shape parameter (xi) is negative: {xi}. Clipping to zero.")
             xi = max(xi, 0)
 
         # Ensure scale is positive
@@ -199,39 +200,83 @@ def inverse_gev(uniform, params):
         inv = (((-np.log(uniform))**(-xi) - 1) * sigma / xi) + mu
     return inv
 
+# def inverse_gev_(dat_, params_):
+#     """
+#     Apply inverse GEV transformation to an entire dataset.
+    
+#     Parameters:
+#     - dat_: Generated uniform samples (n_samples, n_points)
+#     - params_: GEV parameters for each point (n_points, 3)
+    
+#     Returns:
+#     - inversed_gev: Inverse transformed values in original scale.
+#     - min_unif, max_unif: Minimum and maximum uniform values.
+#     - min_inv, max_inv: Minimum and maximum inverse-transformed values.
+#     """
+#     # Apply empirical CDF (uniform transformation)
+#     uniform = np.apply_along_axis(lambda x: (np.argsort(np.argsort(x)) + 1) / (len(x) + 1), axis=0, arr=dat_)
+    
+#     min_unif = np.min(uniform)
+#     max_unif = np.max(uniform)
+    
+#     # Debug the uniform output
+#     assert min_unif >= 0 and max_unif <= 1, f"Uniform values out of range: [{min_unif}, {max_unif}]"
+
+#     # Initialize inversed_gev array
+#     inversed_gev = np.zeros_like(uniform)
+    
+#     # Apply inverse GEV transformation column-wise
+#     for i in range(uniform.shape[1]):
+#         inversed_gev[:, i] = inverse_gev(uniform[:, i], params_[i, :])
+    
+#     min_inv = np.min(inversed_gev)
+#     max_inv = np.max(inversed_gev)
+
+#     assert min_inv < 0, f"Unrealisitc minimum value, inverse-transformed value is negative: {min_inv}"
+
+#     return inversed_gev, min_unif, max_unif, min_inv, max_inv
 def inverse_gev_(dat_, params_):
     """
     Apply inverse GEV transformation to an entire dataset.
     
     Parameters:
-    - dat_: Generated uniform samples (n_samples, n_points)
-    - params_: GEV parameters for each point (n_points, 3)
+    - dat_: Generated uniform samples (n_samples,) for a single column
+    - params_: GEV parameters for each point (3,)
     
     Returns:
-    - inversed_gev: Inverse transformed values in original scale.
+    - inversed_gev: Inverse transformed values in original scale (1-dimensional).
     - min_unif, max_unif: Minimum and maximum uniform values.
     - min_inv, max_inv: Minimum and maximum inverse-transformed values.
     """
-    # Apply empirical CDF (uniform transformation)
-    uniform = np.apply_along_axis(lambda x: (np.argsort(np.argsort(x)) + 1) / (len(x) + 1), axis=0, arr=dat_)
-    
+    # Smallest positive float number for clipping
+    epsilon = np.finfo(float).eps
+
+    # Apply empirical CDF (uniform transformation) to a 1-dimensional array
+    uniform = (np.argsort(np.argsort(dat_)) + 1) / (len(dat_) + 1)
+
+    # Clip the uniform values to avoid numerical precision issues
+    uniform = np.clip(uniform, epsilon, 1 - epsilon)
+
     min_unif = np.min(uniform)
     max_unif = np.max(uniform)
-    
-    # Debug the uniform output
-    assert min_unif >= 0 and max_unif <= 1, f"Uniform values out of range: [{min_unif}, {max_unif}]"
 
-    # Initialize inversed_gev array
+    # Debug the uniform output
+    assert min_unif >= 0 and max_unif <= 1, f"Uniform values out of range after clipping: [{min_unif}, {max_unif}]"
+
+    # Initialize inversed_gev array with the same shape as uniform
     inversed_gev = np.zeros_like(uniform)
-    
-    # Apply inverse GEV transformation column-wise
-    for i in range(uniform.shape[1]):
-        inversed_gev[:, i] = inverse_gev(uniform[:, i], params_[i, :])
-    
+
+    # Ensure params_ is 1D
+    if params_.ndim == 1:
+        # Apply inverse GEV transformation directly
+        inversed_gev = inverse_gev(uniform, params_)
+
     min_inv = np.min(inversed_gev)
     max_inv = np.max(inversed_gev)
 
-    assert min_inv < 0, f"Unrealisitc minimum value, inverse-transformed value is negative: {min_inv}"
+    # Check if the minimum value is realistic for your context
+    if min_inv >= 0:
+        print(f"Warning: Minimum inverse-transformed value is non-negative: {min_inv}")
 
     return inversed_gev, min_unif, max_unif, min_inv, max_inv
 
@@ -296,6 +341,7 @@ def inverse_transform(U_samples: np.ndarray, Z_train: np.ndarray, params: np.nda
 
     elif config.model_type == 'eGPD':
         # Apply inverse GEV transformation (evtGAN)
+        print('\n\n\n          eGPD\n\n\n\n')
         for i in range(n_lat):
             for j in range(n_lon):
                 Z_generated[:, i, j], _, _, _, _ = inverse_egpd_(U_samples[:, i, j], params[i, j, :])

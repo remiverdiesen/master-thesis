@@ -1,6 +1,6 @@
 train = True
 experiment = 1
-model_type = GPD
+model_type = eGPD
 root_dir = 
 exp_dir = ./experiments/1
 data_dir = ./data/1
@@ -8,7 +8,7 @@ models_dir = ./experiments/1/models
 results_dir = ./experiments/1/results
 figures_dir = ./experiments/1/results/figures
 evaluation_dir = ./experiments/1/results/evaluation
-params_file_path = ./experiments/1/params/GPD_params.txt
+params_file_path = ./experiments/1/params/eGPD_params.txt
 data_file = ./data/1/precipitation_maxima.nc
 ids_file = ./data/1/ids.txt
 device = cuda
