@@ -227,6 +227,7 @@ def process_grid_subset(subset_indices, obs, threshold, worker_id, output_dir):
             if np.isnan(shape):
                 logger.debug(f"     failed for ({i}, {j}).")
             file.write(f"({i+1}, {j+1}): {shape:.4f}, {scale:.4f}, {loc:.4f}, {p:.4f}\n")
+
 def main():
     # Load the dataset
     threshold = 0.01
