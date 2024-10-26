@@ -14,41 +14,43 @@ from models import Generator
 from utils import inverse_transform, ks_test, chi_statistic, mean_squared_error, frechet_inception_distance, inception_score, wasserstein_distance_grid
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format="%(lineno)d - %(levelname)s - %(message)s ")
+logging.basicConfig(level=logging.DEBUG, format="%(lineno)d - %(levelname)s - %(message)s ")
 
 def test():
     logger.info("\n\n\n #####################\n\n\n Testing the trained Generator...\n")
     config = Config(train=False)
 
-    # Initialize DataHandler
+    # Initialize DataHandler C:\Users\reverd\OneDrive - SAS\Documents\Thesis\3. Code\2. Modelling\Hazard\spatial-extremes\data\1\ids
     data_handler = DataHandler(config)
 
-    # Load the trained Generator
+    # =============================================================================
+    # Load the Generator Model and Generate Samples
+    # =============================================================================
+    
     netG = Generator(config.noise_dim, batch_norm=config.batch_norm).to(config.device)
 
+    
     ###################################################################################################
-    model_path = config.models_dir + '\\GEV-GAN\\netG_final.pth'
-
-
-
-
+    model_type = config.model_type
+    model_path = config.models_dir + f'\\{model_type}-GAN\\netG_final.pth'
 
     ###################################################################################################
 
     netG.load_state_dict(torch.load(model_path, weights_only=True, map_location=config.device))
     netG.eval()
-    logger.info(f"Loaded the trained Generator!")
+    logger.info(f"      Loaded the trained Generator! for {model_type} model.\n\n")
 
-    # Generate new samples NOTE use n_test to avoid size mismatch in CHi-aquared test, for actual modelling we can use any number of samples
-    n_test = data_handler.Z_test.shape[0] 
+    n_test = 50 
     num_samples = n_test  
     batch_size = config.batch_size 
     noise_dim  = config.noise_dim  
 
     U_samples = []
+    logger.debug(f"\nnum_samples: {num_samples}, batch_size: {batch_size}, noise_dim: {noise_dim}\n")
 
+    print(f"\n model_type {model_type}")
     # Generate n new data points from the trained Generator with uniform margins
-    logger.info(f"Start generating {num_samples} samples from trained Generator...")
+    logger.info(f"Start generating {num_samples} samples from trained Generator...\n")
     with torch.no_grad():
         for i in range(0, num_samples, batch_size):
             current_batch_size = min(batch_size, num_samples - i)
@@ -72,7 +74,7 @@ def test():
     # Squeeze the channel dimension
     U_samples = np.squeeze(U_samples, axis=1)
     logger.debug(f"Squeezed the channel dimension. New shape: {U_samples.shape}") 
-    logger.debug(f"TEST: first generated sample: {U_samples[:, 0, 0]} ")          
+    logger.debug(f"first generated sample: {U_samples[:, 0, 0]} ")          
     logger.debug(f"U_samples min: {U_samples.min()}, max: {U_samples.max()}")     
 
     # Normalize to (0, 1) if necessary 
@@ -80,7 +82,7 @@ def test():
     logger.debug(f"After Normalization: U_samples min: {U_samples.min()}, max: {U_samples.max()}") 
 
     # Transform generated samples back to original scale using inverse GEV\GPD CDFs OR empirical CDF
-    Z_generated = inverse_transform(U_samples, data_handler.Z_train, data_handler.params, data_handler.ids_, config)
+    Z_generated = inverse_transform(U_samples, data_handler.Z_train, data_handler.params, config)
     logger.info("Transformed generated samples back to original scale.")
 
     assert Z_generated.shape == U_samples.shape, "Shape mismatch between Z_generated and U_samples"
@@ -90,12 +92,15 @@ def test():
     logger.debug(f"Z_test shape: {data_handler.Z_test.shape}")
 
 
-    evaluate_generated_samples(Z_generated, data_handler.Z_test.cpu().numpy(), data_handler.ids_, data_handler.GEV_params, config, netG)
+
+
+
+    # evaluate_generated_samples(Z_generated, data_handler.Z_test.cpu().numpy(), data_handler.ids, data_handler.params, config, netG)
     logger.info("Evaluation completed!")
 
 
 def evaluate_generated_samples(Z_generated: np.ndarray, Z_test: np.ndarray, ids_: np.ndarray, 
-                               GEV_params: np.ndarray, config: Config, netG: Generator):
+                               params: np.ndarray, config: Config, netG: Generator):
     """
     Evaluate the generated samples by comparing with real data.
     """

@@ -28,8 +28,8 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 def train():
-    logger.info("\n\n\n Setting up the confi...\n")
-    config = Config(train=True)
+    logger.info("\n\n\n Setting up the config...\n")
+    config = Config.load_config(train=True)
     Config.save_config(config)
 
     # Initialize DataHandler

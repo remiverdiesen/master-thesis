@@ -1,57 +1,53 @@
-import numpy as np
-import torch
-import os
-import logging
-from torch.nn.functional import softmax
-from scipy.stats import genextreme, poisson
+# Assuming you've generated data for each season (DJF, MAM, JJA, SON) separately
+# Load or generate seasonal data:
+seasonal_data = {
+    'DJF': Z_generated_djf,  # Replace with your generated data for each season
+    'MAM': Z_generated_mam,
+    'JJA': Z_generated_jja,
+    'SON': Z_generated_son
+}
 
-# Adjusted for seasonal generation
-EXPERIMENT = 2
-model_type = 'GPD'
-seasons = ['DJF', 'MAM', 'JJA', 'SON']
-season_length = {'DJF': 90*24*12, 'MAM': 92*24*12, 'JJA': 92*24*12, 'SON': 91*24*12}  # Each value represents number of 5-min intervals
+# Concatenate the seasonal data to form a single yearly sample
+yearly_sample = np.concatenate([
+    seasonal_data['DJF'], 
+    seasonal_data['MAM'], 
+    seasonal_data['JJA'], 
+    seasonal_data['SON']
+], axis=0)
 
-# Load the specific model for the season
-model_path = f"experiments{EXPERIMENT}\\{season}\\model\\{model_type}-GAN\\netG_final.pth"
+logger.info(f"Successfully created a yearly sample with shape: {yearly_sample.shape}")
 
-
-def generate_seasonal_data(season, config, data_handler, num_samples, netG):
-    logger.info(f"Generating data for season: {season}")
-
-    # Load the specific model for the season
-    model_path = f"{config.models_dir}\\{season}-GAN\\netG_final.pth"
-    netG.load_state_dict(torch.load(model_path, weights_only=True, map_location=config.device))
+# Load weights and generate seasonal data
+def generate_season_data(season_model_path, num_samples, noise_dim, params, model_type='GEV'):
+    # Load model weights
+    netG = Generator(noise_dim=noise_dim)
+    netG.load_state_dict(torch.load(season_model_path, map_location=device))
+    netG.to(device)
     netG.eval()
-
-    # Generate samples for the current season
+    
+    # Generate samples
     U_samples = []
-    batch_size = config.batch_size
-    noise_dim = config.noise_dim
-
     with torch.no_grad():
-        for i in range(0, num_samples, batch_size):
-            current_batch_size = min(batch_size, num_samples - i)
-            noise = torch.randn(current_batch_size, noise_dim, device=config.device)
-            U_ = netG(noise)
-            U_samples.append(U_.cpu().numpy())
-
-    # Concatenate all generated samples
+        for _ in range(num_samples // batch_size):
+            noise = torch.randn(batch_size, noise_dim, device=device)
+            generated = netG(noise).cpu().numpy()
+            U_samples.append(generated)
+    
+    # Concatenate and transform back
     U_samples = np.concatenate(U_samples, axis=0)
-    logger.info(f"Generated {U_samples.shape[0]} samples for {season}.")
-
-    # Remove padding if necessary
-    pad = 1
-    U_samples = U_samples[:, :, pad:-pad, pad:-pad]
-    U_samples = np.squeeze(U_samples, axis=1)
-
-    # Normalize to (0, 1) if required
-    U_samples = (U_samples + 1) / 2  
-
-    # Transform back to original scale using the inverse GEV/GPD
-    Z_generated = inverse_transform(U_samples, data_handler.Z_train, data_handler.params, data_handler.ids_, config)
-    logger.info(f"Transformed generated samples for {season} back to original scale.")
-
+    Z_generated = transform_samples(U_samples, params, model_type)
+    
     return Z_generated
+
+# Example generating for each season
+djf_data = generate_season_data('path_to_djf_model.pth', 10000, 100, params_djf, model_type='GEV')
+mam_data = generate_season_data('path_to_mam_model.pth', 10000, 100, params_mam, model_type='GEV')
+jja_data = generate_season_data('path_to_jja_model.pth', 10000, 100, params_jja, model_type='GEV')
+son_data = generate_season_data('path_to_son_model.pth', 10000, 100, params_son, model_type='GEV')
+
+# Combine to yearly sample
+yearly_sample = np.concatenate([djf_data, mam_data, jja_data, son_data], axis=0)
+logger.info(f"Generated a complete yearly sample of shape: {yearly_sample.shape}")
 
 
 def poisson_sample_timing(season_length, avg_events):

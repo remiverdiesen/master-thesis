@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import torch
-from scipy.stats import rankdata, genextreme
+from scipy.stats import rankdata, genextreme, genpareto
 from typing import Any, Tuple
 from config import Config
 from dataclasses import dataclass, field
@@ -35,7 +35,13 @@ class DataHandler:
 
     def __post_init__(self):
         self.device = self.config.device
-        self.prepare_data()
+        
+        # Only prepare data if in training mode
+        if self.config.train:
+            self.prepare_data()
+
+        # Load parameters regardless of training mode
+        self.params = self.get_params(self.config)
 
     def prepare_data(self) -> None:
         """
@@ -67,8 +73,7 @@ class DataHandler:
             self.Z_test  = torch.tensor(test_set, dtype=torch.float32)
             
 
-            
-            self.params = self.get_params(self.config, Z_obs.shape[1], Z_obs.shape[2])
+            self.params = self.get_params(self.config)
             logger.debug(f"Got distribution to observations.")
       
             # Normalize margins
@@ -80,12 +85,18 @@ class DataHandler:
                 # test_set min and max values
                 logger.debug(f"Test set min: {test_set.min()}, max: {test_set.max()}")
                 logger.debug(f"Normalized margins using empirical CDF for train and test.")
-            else:
-                # NOTE: Alternatively, could use the fitted GEV distributions for normalization but this seems to give slightly worse results.
+            
+            elif self.config.model_type == 'GEV':
                 train_set = self.normalize_margins_gev(train_set)
                 test_set = self.normalize_margins_gev(test_set)
                 logger.debug(f"Normalized margins using GEV CDF for train and test.")
 
+            elif self.config.model_type == 'GPD':
+                train_set = self.normalize_margins_gpd(train_set)
+                test_set = self.normalize_margins_gpd(test_set)
+                logger.debug(f"Normalized margins using GPD CDF for train and test.")
+               
+                
             # Reshape data
             n_lat, n_lon = Z_obs.shape[1], Z_obs.shape[2]
             X_dim = [n_lat, n_lon, 1]
@@ -131,29 +142,40 @@ class DataHandler:
             logger.error(f"Error in prepare_data: {e}")
             raise e
 
-    def get_params(self, config, n_lat: int, n_lon: int) -> np.ndarray:
+    def get_params(self, config) -> np.ndarray:
         file_path = config.params_file_path
-        # Initialize the GEV_params array
-        params = np.zeros((n_lat, n_lon, 3))
+        print(f"\n\n\nReading parameters from {file_path}\n\n\n")
+        # Determine the maximum values of indices i and j
+        max_i, max_j = 0, 0
+        lines = []
 
-        # Read the file and extract GEV parameters
+        # First pass to find grid size
         with open(file_path, 'r', encoding='utf-8') as file:
             for line in file:
-                # Parse each line in the format: (i, j): shape, loc, scale
                 line = line.strip()
                 if not line:
-                    continue  # skip empty lines
+                    continue  # Skip empty lines
 
                 grid_info, values = line.split(':')
-                i, j = eval(grid_info)  # Get grid indices (1-based)
-                shape, loc, scale = map(float, values.split(','))  # Get shape, loc, scale values
-                
-                # Store in GEV_params (convert 1-based to 0-based indexing)
-                params[i-1, j-1, 0] = shape
-                params[i-1, j-1, 1] = loc
-                params[i-1, j-1, 2] = scale
+                i, j = eval(grid_info.strip())  # Get grid indices (1-based)
+                max_i = max(max_i, i)
+                max_j = max(max_j, j)
+                lines.append((i, j, values.strip()))
+
+        # Initialize the GEV_params array based on the dynamic grid size
+        params = np.zeros((max_i, max_j, 3))
+
+        # Second pass to fill the parameters array
+        for i, j, values in lines:
+            shape, loc, scale = map(float, values.split(','))
+            
+            # Store in params (convert 1-based to 0-based indexing)
+            params[i - 1, j - 1, 0] = shape
+            params[i - 1, j - 1, 1] = loc
+            params[i - 1, j - 1, 2] = scale
 
         return params
+
     
     def normalize_margins_empirical(self, obs: np.ndarray) -> np.ndarray:
         """
@@ -181,12 +203,30 @@ class DataHandler:
 
         for i in range(n_lat):
             for j in range(n_lon):
-                shape, loc, scale = self.GEV_params[i, j, :]
+                shape, loc, scale = self.params[i, j, :]
                 if np.isnan(shape):
                     uniform_data[:, i, j] = np.nan
                     continue
                 time_series = obs[:, i, j]
                 cdf_values = genextreme.cdf(time_series, c=shape, loc=loc, scale=scale)
+                uniform_data[:, i, j] = cdf_values
+        return uniform_data
+
+    def normalize_margins_gpd(self, obs: np.ndarray) -> np.ndarray:
+        """
+        Normalize the input data to uniform margins using fitted GPD CDFs.
+        """
+        n_time, n_lat, n_lon = obs.shape
+        uniform_data = np.zeros(obs.shape)
+
+        for i in range(n_lat):
+            for j in range(n_lon):
+                shape, loc, scale = self.params[i, j, :]
+                if np.isnan(shape):
+                    uniform_data[:, i, j] = np.nan
+                    continue
+                time_series = obs[:, i, j]
+                cdf_values = genpareto.cdf(time_series, c=shape, loc=loc, scale=scale)
                 uniform_data[:, i, j] = cdf_values
         return uniform_data
 

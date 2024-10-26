@@ -28,37 +28,46 @@ def inverse_gpd(uniform, params):
     Returns:
     - inv: Inverse transformed values on the original scale.
     """
-
-    sigma, threshold, xi  = params
+    sigma, threshold, xi = params
 
     # Ensure uniform values are in the open interval (0, 1)
     epsilon = np.finfo(float).eps  # Smallest positive float number
     uniform = np.clip(uniform, epsilon, 1 - epsilon)
+
+    # Ensure sigma is positive to avoid unexpected behavior
+    sigma = max(sigma, epsilon)
+
+    # Adjust for negative xi if negative values are not allowed
+    if xi < 0 and threshold < 0:
+        # print(f"Warning: Adjusting threshold from {threshold} to 0 to avoid negative values.")
+        threshold = 0
 
     # Handle GPD case where xi == 0
     if xi == 0:
         inv = threshold + sigma * (-np.log(1 - uniform))
     else:
         inv = threshold + (sigma / xi) * ((1 - uniform) ** (-xi) - 1)
+
+    # Clip negative values if necessary
+    inv = np.maximum(inv, 0)
     return inv
+
 
 def inverse_gpd_(dat_, params_):
     """
     Apply inverse GPD transformation to an entire dataset.
     
     Parameters:
-    - dat_: Generated uniform samples (n_samples, n_points)
-    - params_: GPD parameters for each point (n_points, 3)
+    - dat_: Generated uniform samples (n_samples,) for a single column
+    - params_: GPD parameters for each point (3,)
     
     Returns:
-    - inversed_gpd: Inverse transformed values in original scale.
+    - inversed_gpd: Inverse transformed values in original scale (1-dimensional).
     - min_unif, max_unif: Minimum and maximum uniform values.
     - min_inv, max_inv: Minimum and maximum inverse-transformed values.
     """
-    # Apply empirical CDF (uniform transformation)
-    uniform = np.apply_along_axis(
-        lambda x: (np.argsort(np.argsort(x)) + 1) / (len(x) + 1), axis=0, arr=dat_
-    )
+    # Apply empirical CDF (uniform transformation) to a 1-dimensional array
+    uniform = (np.argsort(np.argsort(dat_)) + 1) / (len(dat_) + 1)
 
     min_unif = np.min(uniform)
     max_unif = np.max(uniform)
@@ -66,21 +75,109 @@ def inverse_gpd_(dat_, params_):
     # Debug the uniform output
     assert 0 <= min_unif <= 1 and 0 <= max_unif <= 1, f"Uniform values out of range: [{min_unif}, {max_unif}]"
 
-    # Initialize inversed_gpd array
+    # Initialize inversed_gpd array with the same shape as uniform
     inversed_gpd = np.zeros_like(uniform)
 
-    # Apply inverse GPD transformation column-wise
-    for i in range(uniform.shape[1]):
-        inversed_gpd[:, i] = inverse_gpd(uniform[:, i], params_[i, :])
+    # Ensure params_ is 1D
+    if params_.ndim == 1:
+        # Check if the shape parameter is negative and clip if necessary
+        if params_[0] < 0:
+            print(f"Warning: Shape parameter (xi) is negative: {params_[0]}. Clipping to zero.")
+            params_[0] = max(params_[0], 0)
+        
+        # Apply inverse GPD transformation directly
+        inversed_gpd = inverse_gpd(uniform, params_)
 
     min_inv = np.min(inversed_gpd)
     max_inv = np.max(inversed_gpd)
 
-    # Check for negative values (GPD can be negative depending on xi)
-    if np.any(inversed_gpd < 0):
-        print(f"Warning: Negative inverse-transformed values detected. Min value: {min_inv}")
+    # Clip negative values if they are not allowed
+    inversed_gpd = np.maximum(inversed_gpd, 0)  # Example: Clip to zero
 
     return inversed_gpd, min_unif, max_unif, min_inv, max_inv
+
+def inverse_egpd(uniform, params):
+    """
+    Apply the inverse EGPD transformation for given uniform values and EGPD parameters.
+    
+    Parameters:
+    - uniform: array of uniform values in the open interval (0, 1)
+    - params: EGPD parameters [xi, sigma, threshold, p]
+    
+    Returns:
+    - inv: Inverse transformed values on the original scale.
+    """
+    sigma, threshold, xi, p = params
+
+    # Ensure uniform values are in the open interval (0, 1)
+    epsilon = np.finfo(float).eps  # Smallest positive float number
+    uniform = np.clip(uniform, epsilon, 1 - epsilon)
+
+    # Apply the inverse EGPD transformation
+    inv = np.zeros_like(uniform)
+    
+    # Case 1: For values below the threshold (non-exceedance)
+    below_mask = uniform <= p
+    inv[below_mask] = threshold * uniform[below_mask] / p  # Example empirical inverse
+
+    # Case 2: For values above the threshold (standard GPD)
+    above_mask = uniform > p
+    if xi == 0:
+        inv[above_mask] = threshold + sigma * (-np.log(1 - (uniform[above_mask] - p) / (1 - p)))
+    else:
+        inv[above_mask] = threshold + (sigma / xi) * ((1 - (uniform[above_mask] - p) / (1 - p)) ** (-xi) - 1)
+
+    return inv
+
+def inverse_egpd_(dat_, params_):
+    """
+    Apply inverse EGPD transformation to an entire dataset.
+    
+    Parameters:
+    - dat_: Generated uniform samples (n_samples,) for a single column
+    - params_: EGPD parameters for each point (4,) -> [xi, sigma, threshold, p]
+    
+    Returns:
+    - inversed_egpd: Inverse transformed values in original scale (1-dimensional).
+    - min_unif, max_unif: Minimum and maximum uniform values.
+    - min_inv, max_inv: Minimum and maximum inverse-transformed values.
+    """
+    # Apply empirical CDF (uniform transformation) to a 1-dimensional array
+    uniform = (np.argsort(np.argsort(dat_)) + 1) / (len(dat_) + 1)
+
+    min_unif = np.min(uniform)
+    max_unif = np.max(uniform)
+
+    # Debug the uniform output
+    assert 0 <= min_unif <= 1 and 0 <= max_unif <= 1, f"Uniform values out of range: [{min_unif}, {max_unif}]"
+
+    # Initialize inversed_egpd array with the same shape as uniform
+    inversed_egpd = np.zeros_like(uniform)
+
+    # Ensure params_ is 1D and contains the expected EGPD parameters
+    if params_.ndim == 1 and len(params_) == 4:
+        # Unpack EGPD parameters
+        xi, sigma, threshold, p = params_
+
+        # Check if the shape parameter is negative and adjust if necessary
+        if xi < 0:
+            print(f"Warning: Shape parameter (xi) is negative: {xi}. Clipping to zero.")
+            xi = max(xi, 0)
+
+        # Ensure scale is positive
+        sigma = max(sigma, np.finfo(float).eps)
+
+        # Apply the inverse EGPD transformation
+        inversed_egpd = inverse_egpd(uniform, [sigma, threshold, xi, p])
+
+    min_inv = np.min(inversed_egpd)
+    max_inv = np.max(inversed_egpd)
+
+    # Clip negative values if they are not allowed
+    inversed_egpd = np.maximum(inversed_egpd, 0)  # Example: Clip to zero
+
+    return inversed_egpd, min_unif, max_unif, min_inv, max_inv
+
 
 def inverse_gev(uniform, params):
     """
@@ -157,7 +254,7 @@ def inverse_ecdf(dat_, train):
     
     return inversed_ecdf
 
-def inverse_transform(U_samples: np.ndarray, Z_train: np.ndarray, params: np.ndarray, ids_: np.ndarray, config) -> np.ndarray:
+def inverse_transform(U_samples: np.ndarray, Z_train: np.ndarray, params: np.ndarray,  config) -> np.ndarray:
     """
     Transform generated samples back to original scale using inverse GEV CDFs OR empirical CDF.
     
@@ -185,17 +282,23 @@ def inverse_transform(U_samples: np.ndarray, Z_train: np.ndarray, params: np.nda
         for i in range(n_lat):
             for j in range(n_lon):
                 Z_generated[:, i, j] = inverse_ecdf(U_samples[:, i, j], Z_train[:, i, j])
-    elif config.model_type = 'GEV'
+    elif config.model_type == 'GEV':
         # Apply inverse GEV transformation (evtGAN)
         for i in range(n_lat):
             for j in range(n_lon):
-                Z_generated[:, i, j], _, _, _, _ = inverse_gev_(U_samples[:, i, j], arams[i, j, :])
-    
-    else config.model_type = 'GPD'
+                Z_generated[:, i, j], _, _, _, _ = inverse_gev_(U_samples[:, i, j], params[i, j, :])
+
+    elif config.model_type == 'GPD':
         # Apply inverse GEV transformation (evtGAN)
         for i in range(n_lat):
             for j in range(n_lon):
                 Z_generated[:, i, j], _, _, _, _ = inverse_gpd_(U_samples[:, i, j], params[i, j, :])
+
+    elif config.model_type == 'eGPD':
+        # Apply inverse GEV transformation (evtGAN)
+        for i in range(n_lat):
+            for j in range(n_lon):
+                Z_generated[:, i, j], _, _, _, _ = inverse_egpd_(U_samples[:, i, j], params[i, j, :])
     return Z_generated
 
 def weights_init(m: nn.Module) -> None:

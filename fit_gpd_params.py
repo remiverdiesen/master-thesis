@@ -8,6 +8,43 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+from scipy.stats import genpareto
+import numpy as np
+from scipy.optimize import minimize
+import logging
+
+logger = logging.getLogger(__name__)
+
+def fit_egpd_to_grid_point(time_series, threshold):
+    """
+    Fit the Extended GPD (EGPD) to a single grid point time series using a threshold.
+    
+    Parameters:
+    - time_series: 1D array of values at a specific grid point.
+    - threshold: Threshold above which to fit the standard GPD part.
+    
+    Returns:
+    - xi, sigma, mu, p: Fitted EGPD parameters.
+    """
+    # Non-zero data below threshold
+    below_threshold = time_series[(time_series > 0) & (time_series <= threshold)]
+    # Data above the threshold (standard GPD)
+    exceedances = time_series[time_series > threshold] - threshold
+
+    # Probability of non-exceedance (values <= threshold)
+    p = len(below_threshold) / len(time_series)
+
+    if len(exceedances) < 1:
+        return np.nan, np.nan, np.nan, p
+
+    try:
+        # Fit the GPD distribution to the exceedances using MLE
+        shape, loc, scale = genpareto.fit(exceedances)
+        return shape, loc + threshold, scale, p
+    except Exception as e:
+        logger.warning(f"Could not fit EGPD to time series: {e}")
+        return np.nan, np.nan, np.nan, p
+
 def fit_gpd_to_grid_point(time_series, threshold):
     """
     Fit the GPD distribution to a single grid point time series using a threshold.
@@ -43,7 +80,7 @@ def process_grid_subset(subset_indices, obs, threshold, worker_id, output_dir):
     with open(output_filepath, 'w') as file:
         for i, j in worker_id[1]:
             time_series = obs[:, i, j]
-            shape, loc, scale = fit_gpd_to_grid_point(time_series, threshold)
+            shape, loc, scale = fit_egpd_to_grid_point(time_series, threshold)
             if not np.isnan(shape):
                 logger.debug(f"GPD fitted to grid point ({i}, {j}): shape={shape:.4f}, loc={loc:.4f}, scale={scale:.4f}")
                 file.write(f"({i+1}, {j+1}): {shape:.4f}, {loc:.4f}, {scale:.4f}\n")
