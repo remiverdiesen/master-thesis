@@ -75,23 +75,23 @@ def process_grid_subset(subset_indices, obs, threshold, worker_id, output_dir):
     - output_dir: Directory to save output files
     """
     # Use a shorter file name based on the worker ID
-    output_filepath = os.path.join(output_dir, f"GPD_params_worker_{worker_id[0]}.txt")
+    output_filepath = os.path.join(output_dir, f"eGPD_params_worker_{worker_id[0]}.txt")
     
     with open(output_filepath, 'w') as file:
         for i, j in worker_id[1]:
             time_series = obs[:, i, j]
-            shape, loc, scale = fit_egpd_to_grid_point(time_series, threshold)
+            shape, loc, scale, p = fit_egpd_to_grid_point(time_series, threshold)
             if not np.isnan(shape):
-                logger.debug(f"GPD fitted to grid point ({i}, {j}): shape={shape:.4f}, loc={loc:.4f}, scale={scale:.4f}")
-                file.write(f"({i+1}, {j+1}): {shape:.4f}, {loc:.4f}, {scale:.4f}\n")
+                logger.debug(f"GPD fitted to grid point ({i}, {j}): shape={shape:.4f}, loc={loc:.4f}, scale={scale:.4f}, p={p:.4f}")
+                file.write(f"({i+1}, {j+1}): {shape:.4f}, {loc:.4f}, {scale:.4f}, {p:.4f}\n")
 
 def main():
     # Load the dataset
     threshold = 0.01
-    EXPERIMENT = '2'
-    DATASET = 'precip_2.4km_1999-2010_Annual_5min'
+    EXPERIMENT = '1'
+    DATASET = 'precipitation_maxima'
     dataset_file_path = f'spatial-extremes/data/{EXPERIMENT}/{DATASET}.nc'
-    output_dir = f'spatial-extremes/experiments/3'
+    output_dir = f'spatial-extremes/experiments/{EXPERIMENT}'
 
     # Create the output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
