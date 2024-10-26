@@ -5,7 +5,7 @@ from scipy.stats import genpareto
 from lightning.data import map
 from tqdm import tqdm
 import logging
-
+from scipy.spatial import cKDTree
 import glob
 from scipy.interpolate import griddata
 
@@ -36,6 +36,34 @@ logger.propagate = False
 
 import numpy as np
 from scipy.optimize import minimize
+
+def fill_nan_with_nearest(known_indices, known_values, full_grid_indices):
+    """
+    Fill NaN values in known_values using the nearest known value.
+
+    Parameters:
+    - known_indices: Array of indices where the data is known.
+    - known_values: Array of known parameter values (may contain NaNs).
+    - full_grid_indices: Array of all grid indices that need to be filled.
+
+    Returns:
+    - filled_values: Array with NaN values filled using the nearest known data.
+    """
+    # Remove rows with NaN in known_values for interpolation
+    valid_mask = ~np.isnan(known_values).any(axis=1)
+    valid_indices = known_indices[valid_mask]
+    valid_values = known_values[valid_mask]
+
+    # Build a KDTree for efficient nearest-neighbor search
+    tree = cKDTree(valid_indices)
+
+    # Find the nearest valid point for each grid index
+    _, nearest_idx = tree.query(full_grid_indices)
+
+    # Fill the NaN values with the nearest non-NaN data
+    filled_values = valid_values[nearest_idx]
+    
+    return filled_values
 
 def read_and_order_params(output_dir):
     """
@@ -96,13 +124,8 @@ def read_and_order_params(output_dir):
     known_indices = np.array(list(params_dict.keys()))
     known_values = np.array(list(params_dict.values()))
     
-    # Interpolate missing values using nearest method
-    interpolated_values = griddata(
-        points=known_indices,  # Known points
-        values=known_values,   # Known parameter values
-        xi=full_grid_indices,  # All grid indices to fill
-        method='nearest'       # Use nearest neighbor interpolation
-    )
+    # Use KDTree-based method to fill NaN values with the nearest available value
+    interpolated_values = fill_nan_with_nearest(known_indices, known_values, full_grid_indices)
 
     # Create an ordered dictionary for all grid points
     ordered_params = {idx: params for idx, params in zip(full_grid_indices, interpolated_values)}
@@ -110,7 +133,6 @@ def read_and_order_params(output_dir):
     # Return both the original parameters (without interpolation) and the ordered interpolated parameters
     return ordered_params, params_dict
 
-    # Return both the original parameter
 
 def save_ordered_params(output_dir, ordered_params, filename):
     """
