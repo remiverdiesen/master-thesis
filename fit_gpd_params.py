@@ -60,17 +60,15 @@ def process_grid_subset(subset_indices, obs, threshold, worker_id, output_dir):
 def main():
     # Load the dataset
     threshold = 0.01
-
-    EXPERIMENT = '1'
-    PERIOD = "A" # "B"
+    EXPERIMENT = '2'
+    PERIOD = "2010-2024" # 
     SEASON = 'DJF'
 
-    DATASET = 'precipitation_maxima'
     
-    logging.info(f"\n\n\n Fitting GPD params to grid points from: {DATASET}")
+    logging.info(f"\n\n\n Fitting eGPD params to grid points for Experiment {EXPERIMENT}, Period {PERIOD}, Season {SEASON}\n\n")
 
-    dataset_file_path = f'spatial-extremes/data/{EXPERIMENT}/{DATASET}.nc'
-    output_dir = f'spatial-extremes/experiments/{EXPERIMENT}'
+    dataset_file_path = f'spatial-extremes/data/{EXPERIMENT}/{PERIOD}/{SEASON}/nc'
+    output_dir = f'spatial-extremes/experiments/{EXPERIMENT}/{PERIOD}/{SEASON}'
 
     # Create the output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
