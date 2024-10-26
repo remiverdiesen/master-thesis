@@ -133,7 +133,6 @@ def read_and_order_params(output_dir):
     # Return both the original parameters (without interpolation) and the ordered interpolated parameters
     return ordered_params, params_dict
 
-
 def save_ordered_params(output_dir, ordered_params, filename):
     """
     Save the ordered parameters to a file.
@@ -149,7 +148,6 @@ def save_ordered_params(output_dir, ordered_params, filename):
         for (i, j), params in ordered_params.items():
             shape, scale, loc, p = params
             outfile.write(f"({i}, {j}): {shape:.4f}, {scale:.4f}, {loc:.4f}, {p:.4f}\n")
-
 
 def neg_log_likelihood(params, exceedances):
     """
@@ -232,9 +230,9 @@ def process_grid_subset(subset_indices, obs, threshold, worker_id, output_dir):
 def main():
     # Load the dataset
     threshold = 0.01
-    EXPERIMENT = '2'
+    EXPERIMENT = '4'
     PERIOD = "2010-2024" # 
-    SEASON = 'DJF'
+    SEASON = 'SON' #
 
     
     logger.info(f"\n\n\n Fitting eGPD params to grid points for Experiment {EXPERIMENT}, Period {PERIOD}, Season {SEASON}\n\n")
