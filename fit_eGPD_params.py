@@ -78,13 +78,17 @@ def main():
     
     logging.info(f"\n\n\n Fitting eGPD params to grid points for Experiment {EXPERIMENT}, Period {PERIOD}, Season {SEASON}\n\n")
 
-    dataset_file_path = f'spatial-extremes/data/{EXPERIMENT}/{PERIOD}/{SEASON}/nc'
-    output_dir = f'spatial-extremes/experiments/{EXPERIMENT}/{PERIOD}/{SEASON}'
+    
 
+# Use a wildcard to find the .nc file without specifying the full name
+    dataset_file_path = glob.glob(f'spatial-extremes/data/{EXPERIMENT}/{PERIOD}/{SEASON}/*.nc')
+
+    output_dir = f'spatial-extremes/experiments/{EXPERIMENT}/{PERIOD}/{SEASON}'
+    logging.info(f"\n\n\n path: {dataset_file_path}\n\n ")
     # Create the output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
 
-    ds = xr.open_dataset(dataset_file_path)
+    ds = xr.open_dataset(dataset_file_path, engine='netcdf4')
     var_name = list(ds.data_vars)[0]
     Z_obs = ds[var_name].values
 
