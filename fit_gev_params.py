@@ -5,7 +5,7 @@ from scipy.stats import genextreme
 from lightning.data import map
 from tqdm import tqdm
 import logging
-
+import glob
 logger = logging.getLogger(__name__)
 
 def fit_gev_to_grid_point(time_series):
@@ -44,8 +44,16 @@ def process_grid_subset(subset_indices, obs, worker_id, output_dir):
 
 def main():
     # Load the dataset
-    EXPERIMENT = '2'
-    DATASET = 'precip_2.4km_1999-2010_Annual_5min.nc'
+
+    EXPERIMENT = '1'
+    PERIOD = "A" # "B"
+    SEASON = 'DJF'
+
+
+    DATASET = 'precipitation_maxima'
+    
+    logging.info(f"\n\n\n Fitting GEV params to grid points from: {DATASET}")
+
     dataset_file_path = f'spatial-extremes/data/{EXPERIMENT}/{DATASET}.nc'
     output_dir = f'spatial-extremes/experiments/{EXPERIMENT}'
 
@@ -61,19 +69,25 @@ def main():
     indices = [(i, j) for i in range(n_lat) for j in range(n_lon)]
     total_jobs = len(indices)
 
-    # Use os.cpu_count() to determine the number of workers (CPUs)
+    logging.info(f"Total of {total_jobs} grid points to process.")
+
     num_workers = os.cpu_count()
     jobs_per_worker = total_jobs // num_workers
+    
+    logging.info(f"Using {num_workers} workers with {jobs_per_worker} jobs each.")
+
     job_splits = [indices[i:i + jobs_per_worker] for i in range(0, total_jobs, jobs_per_worker)]
 
     # Ensure each worker has roughly the same amount of work
     if len(job_splits) > num_workers:
         job_splits[-2].extend(job_splits.pop())
 
+
     # Define the function to process each subset
     def process_subset(worker_id, subset):
         process_grid_subset(subset, Z_obs, worker_id, output_dir)
 
+    logging.info("\n\n\nStarting the parallel processing of grid points....\n\n\n")
     # Use lightning's map function to distribute the work
     map(
         fn=process_subset,
@@ -81,6 +95,24 @@ def main():
         num_workers=num_workers,
         output_dir=output_dir
     )
+
+    # Read all params and order them in a new file and deleting the old ones
+    all_params = []
+
+     # Concatenate all the parameter files into one and delete the originals
+    output_file_path = os.path.join(output_dir, "GEV_params.txt")
+
+    with open(output_file_path, 'w') as outfile:
+        # Collect all files matching the pattern
+        txt_files = glob.glob(os.path.join(output_dir, "GEV_params_worker_*.txt"))
+        for file_path in txt_files:
+            with open(file_path, 'r') as infile:
+                # Write each file's contents to the main output file
+                outfile.write(infile.read())
+            # Remove the individual worker file after processing
+            os.remove(file_path)
+
+    logging.info(f"All parameters have been consolidated into {output_file_path} and old files have been deleted.")
 
 if __name__ == "__main__":
     main()

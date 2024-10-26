@@ -8,6 +8,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+import glob 
 from scipy.stats import genpareto
 import numpy as np
 from scipy.optimize import minimize
@@ -15,35 +16,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def fit_egpd_to_grid_point(time_series, threshold):
-    """
-    Fit the Extended GPD (EGPD) to a single grid point time series using a threshold.
-    
-    Parameters:
-    - time_series: 1D array of values at a specific grid point.
-    - threshold: Threshold above which to fit the standard GPD part.
-    
-    Returns:
-    - xi, sigma, mu, p: Fitted EGPD parameters.
-    """
-    # Non-zero data below threshold
-    below_threshold = time_series[(time_series > 0) & (time_series <= threshold)]
-    # Data above the threshold (standard GPD)
-    exceedances = time_series[time_series > threshold] - threshold
-
-    # Probability of non-exceedance (values <= threshold)
-    p = len(below_threshold) / len(time_series)
-
-    if len(exceedances) < 1:
-        return np.nan, np.nan, np.nan, p
-
-    try:
-        # Fit the GPD distribution to the exceedances using MLE
-        shape, loc, scale = genpareto.fit(exceedances)
-        return shape, loc + threshold, scale, p
-    except Exception as e:
-        logger.warning(f"Could not fit EGPD to time series: {e}")
-        return np.nan, np.nan, np.nan, p
 
 def fit_gpd_to_grid_point(time_series, threshold):
     """
@@ -80,7 +52,7 @@ def process_grid_subset(subset_indices, obs, threshold, worker_id, output_dir):
     with open(output_filepath, 'w') as file:
         for i, j in worker_id[1]:
             time_series = obs[:, i, j]
-            shape, loc, scale, p = fit_egpd_to_grid_point(time_series, threshold)
+            shape, loc, scale, p = fit_gpd_to_grid_point(time_series, threshold)
             if not np.isnan(shape):
                 logger.debug(f"GPD fitted to grid point ({i}, {j}): shape={shape:.4f}, loc={loc:.4f}, scale={scale:.4f}, p={p:.4f}")
                 file.write(f"({i+1}, {j+1}): {shape:.4f}, {loc:.4f}, {scale:.4f}, {p:.4f}\n")
@@ -88,8 +60,15 @@ def process_grid_subset(subset_indices, obs, threshold, worker_id, output_dir):
 def main():
     # Load the dataset
     threshold = 0.01
+
     EXPERIMENT = '1'
+    PERIOD = "A" # "B"
+    SEASON = 'DJF'
+
     DATASET = 'precipitation_maxima'
+    
+    logging.info(f"\n\n\n Fitting GPD params to grid points from: {DATASET}")
+
     dataset_file_path = f'spatial-extremes/data/{EXPERIMENT}/{DATASET}.nc'
     output_dir = f'spatial-extremes/experiments/{EXPERIMENT}'
 
@@ -104,23 +83,27 @@ def main():
     n_lat, n_lon = Z_obs.shape[1], Z_obs.shape[2]
     indices = [(i, j) for i in range(n_lat) for j in range(n_lon)]
     total_jobs = len(indices)
-    print (total_jobs)
 
-    print ()
+    logging.info(f"Total of {total_jobs} grid points to process.")
+
     # Use os.cpu_count() to determine the number of workers (CPUs)
     num_workers = os.cpu_count()
     jobs_per_worker = total_jobs // num_workers
-    print (jobs_per_worker)
+
+    logging.info(f"Using {num_workers} workers with {jobs_per_worker} jobs each.")
+
     job_splits = [indices[i:i + jobs_per_worker] for i in range(0, total_jobs, jobs_per_worker)]
 
     # Ensure each worker has roughly the same amount of work
     if len(job_splits) > num_workers:
         job_splits[-2].extend(job_splits.pop())
 
+
     # Define the function to process each subset
     def process_subset(worker_id, subset):
         process_grid_subset(subset, Z_obs, threshold, worker_id, output_dir)
 
+    logging.info("\n\n\nStarting the parallel processing of grid points....\n\n\n")
     # Use lightning's map function to distribute the work
     map(
         fn=process_subset,
@@ -128,6 +111,22 @@ def main():
         num_workers=num_workers,
         output_dir=output_dir
     )
+
+    # Read all params and order them in a new file and deleting the old ones
+    all_params = []
+     # Concatenate all the parameter files into one and delete the originals
+    output_file_path = os.path.join(output_dir, "GPD_params.txt")
+    with open(output_file_path, 'w') as outfile:
+        # Collect all files matching the pattern
+        txt_files = glob.glob(os.path.join(output_dir, "GPD_params_worker_*.txt"))
+        for file_path in txt_files:
+            with open(file_path, 'r') as infile:
+                # Write each file's contents to the main output file
+                outfile.write(infile.read())
+            # Remove the individual worker file after processing
+            os.remove(file_path)
+
+    logging.info(f"All parameters have been consolidated into {output_file_path} and old files have been deleted.")
 
 if __name__ == "__main__":
     main()
