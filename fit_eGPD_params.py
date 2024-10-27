@@ -157,7 +157,7 @@ def main():
     threshold = 0.1
 
     EXPERIMENT = 'RACMO_ens=1'
-    PERIOD     = "1991-2020" #  "2010-2024"
+    PERIOD     = "2036-2065" #  "2010-2024" 1991-2020
     SEASON     = "SON" #'Annual' # 
 
     

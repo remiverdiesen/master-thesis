@@ -162,9 +162,10 @@ def process_grid_subset(subset_indices, obs, threshold, worker_id, output_dir):
 def main():
     # Load the dataset
     threshold = 0.01
-    EXPERIMENT = '3'
-    PERIOD = "1998-2010" # 
-    SEASON = 'DJF'
+    
+    EXPERIMENT = 'RACMO_ens=1'
+    PERIOD     = "2036-2065" #  "2010-2024" 1991-2020
+    SEASON     = "DJF" #'Annual' # 
 
     
     logger.info(f"\n\n\n Fitting GPD params to grid points for Experiment {EXPERIMENT}, Period {PERIOD}, Season {SEASON}\n\n")
