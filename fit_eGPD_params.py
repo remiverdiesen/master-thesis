@@ -1,15 +1,16 @@
 import os
+import glob
+import logging
+
 import numpy as np
 import xarray as xr
+
+
 from scipy.stats import genpareto
 from lightning.data import map
-from tqdm import tqdm
-import logging
-from scipy.spatial import cKDTree
-import glob
-from scipy.interpolate import griddata
 
-import logging
+from scipy.spatial import cKDTree
+
 
 # Create a logger
 logger = logging.getLogger(__name__)
@@ -34,21 +35,7 @@ logger.addHandler(console_handler)
 # Remove any existing default handlers to prevent duplication
 logger.propagate = False
 
-import numpy as np
-from scipy.optimize import minimize
-
 def fill_nan_with_nearest(known_indices, known_values, full_grid_indices):
-    """
-    Fill NaN values in known_values using the nearest known value.
-
-    Parameters:
-    - known_indices: Array of indices where the data is known.
-    - known_values: Array of known parameter values (may contain NaNs).
-    - full_grid_indices: Array of all grid indices that need to be filled.
-
-    Returns:
-    - filled_values: Array with NaN values filled using the nearest known data.
-    """
     # Remove rows with NaN in known_values for interpolation
     valid_mask = ~np.isnan(known_values).any(axis=1)
     valid_indices = known_indices[valid_mask]
@@ -66,17 +53,6 @@ def fill_nan_with_nearest(known_indices, known_values, full_grid_indices):
     return filled_values
 
 def read_and_order_params(output_dir):
-    """
-    Read all parameter files, order them by grid point indices (i, j),
-    and interpolate missing values with the nearest available parameter.
-    
-    Parameters:
-    - output_dir: Directory containing parameter files.
-
-    Returns:
-    - ordered_params: A dictionary with interpolated (i, j) indices and their parameters.
-    - original_params: A dictionary with the original (i, j) indices and their parameters.
-    """
     # Initialize storage for parameters
     params_dict = {}
 
@@ -112,14 +88,11 @@ def read_and_order_params(output_dir):
 
         # Remove the individual worker file after processing
         os.remove(file_path)
-
     # Determine the maximum grid dimensions from the data
     max_i = max(idx[0] for idx in params_dict.keys())
     max_j = max(idx[1] for idx in params_dict.keys())
-
     # Create a grid for all indices
     full_grid_indices = [(i, j) for i in range(1, max_i + 1) for j in range(1, max_j + 1)]
-    
     # Prepare data for interpolation
     known_indices = np.array(list(params_dict.keys()))
     known_values = np.array(list(params_dict.values()))
@@ -134,14 +107,7 @@ def read_and_order_params(output_dir):
     return ordered_params, params_dict
 
 def save_ordered_params(output_dir, ordered_params, filename):
-    """
-    Save the ordered parameters to a file.
-    
-    Parameters:
-    - output_dir: Directory to save the output file.
-    - ordered_params: Ordered parameters.
-    - filename: Name of the output file.
-    """
+
     output_file_path = os.path.join(output_dir, filename)
     
     with open(output_file_path, 'w') as outfile:
@@ -149,42 +115,9 @@ def save_ordered_params(output_dir, ordered_params, filename):
             shape, scale, loc, p = params
             outfile.write(f"({i}, {j}): {shape:.4f}, {scale:.4f}, {loc:.4f}, {p:.4f}\n")
 
-def neg_log_likelihood(params, exceedances):
-    """
-    Negative log-likelihood function for the EGPD.
-    
-    Parameters:
-    - params: Array-like, parameters [xi, sigma, mu] to be optimized.
-    - exceedances: Array of data points above the threshold.
-    
-    Returns:
-    - Negative log-likelihood value.
-    """
-    xi, sigma, mu = params
-    if sigma <= 0:
-        return np.inf  # Scale parameter must be positive
-    
-    term = 1 + xi * (exceedances - mu) / sigma
-    if np.any(term <= 0):  # Ensure valid domain
-        return np.inf
-    
-    log_likelihood = -np.sum(np.log(sigma) + (-1 / xi) * np.log(term))
-    return -log_likelihood
-
 def fit_egpd_to_grid_point(time_series, threshold):
-    """
-    Fit the Extended GPD (eGPD) to a single grid point time series using a threshold.
-    
-    Parameters:
-    - time_series: 1D array of values at a specific grid point.
-    - threshold:   Threshold above which to fit the eGPD.
-    
-    Returns:
-    - xi (shape), mu (location), sigma (scale), p: Fitted eGPD parameters.
-    """
     # Data above the threshold (EGPD component)
     exceedances = time_series[time_series > threshold] - threshold
-
     # Probability of non-exceedance (values <= threshold)
     below_threshold = time_series[(time_series > 0) & (time_series <= threshold)]
     p = len(below_threshold) / len(time_series)
@@ -205,16 +138,7 @@ def fit_egpd_to_grid_point(time_series, threshold):
         return np.nan, np.nan, np.nan, p
 
 def process_grid_subset(subset_indices, obs, threshold, worker_id, output_dir):
-    """
-    Process a subset of grid points, fit EGPD, and write results to a file.
-
-    Parameters:
-    - subset_indices: List of tuples (i, j) indicating grid indices to process
-    - obs: A 3D numpy array with dimensions (time, lat, lon)
-    - threshold: Threshold value for fitting EGPD
-    - worker_id: Unique ID for the worker (used for file naming)
-    - output_dir: Directory to save output files
-    """
+   
     # Use a shorter file name based on the worker ID
     output_filepath = os.path.join(output_dir, f"eGPD_params_worker_{worker_id[0]}.txt")
     

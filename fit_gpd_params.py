@@ -1,20 +1,122 @@
 import os
+import glob
+import logging
+
 import numpy as np
 import xarray as xr
+
+
 from scipy.stats import genpareto
 from lightning.data import map
-from tqdm import tqdm
-import logging
 
+from scipy.spatial import cKDTree
+
+
+# Create a logger
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)  # Set the base logger level to DEBUG to capture all levels
 
-import glob 
-from scipy.stats import genpareto
-import numpy as np
-from scipy.optimize import minimize
-import logging
+# Create a handler for logging to a file with DEBUG level
+file_handler = logging.FileHandler('gpd_fitting.log', mode='w')
+file_handler.setLevel(logging.DEBUG)  # Logs everything to the file
+file_formatter = logging.Formatter('%(asctime)s - %(message)s')
+file_handler.setFormatter(file_formatter)
 
-logger = logging.getLogger(__name__)
+# Create a handler for logging to the console with INFO level
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)  # Only logs INFO level and above to the console
+console_formatter = logging.Formatter('%(asctime)s - %(message)s')
+console_handler.setFormatter(console_formatter)
+
+# Add both handlers to the logger
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)
+
+# Remove any existing default handlers to prevent duplication
+logger.propagate = False
+
+def fill_nan_with_nearest(known_indices, known_values, full_grid_indices):
+    # Remove rows with NaN in known_values for interpolation
+    valid_mask = ~np.isnan(known_values).any(axis=1)
+    valid_indices = known_indices[valid_mask]
+    valid_values = known_values[valid_mask]
+
+    # Build a KDTree for efficient nearest-neighbor search
+    tree = cKDTree(valid_indices)
+
+    # Find the nearest valid point for each grid index
+    _, nearest_idx = tree.query(full_grid_indices)
+
+    # Fill the NaN values with the nearest non-NaN data
+    filled_values = valid_values[nearest_idx]
+    
+    return filled_values
+
+def read_and_order_params(output_dir):
+    # Initialize storage for parameters
+    params_dict = {}
+
+    # Collect all files matching the pattern
+    txt_files = glob.glob(os.path.join(output_dir, "GPD_params_worker_*.txt"))
+    
+    # Read all files and populate the dictionary
+    for file_path in txt_files:
+        with open(file_path, 'r') as infile:
+            for line in infile:
+                # Expected format: (i, j): shape, scale, loc, p
+                parts = line.strip().split(':')
+                if len(parts) != 2:
+                    continue
+                index_part, params_part = parts
+                
+                # Ensure index_part can be properly split into integers
+                try:
+                    index = tuple(int(x.strip()) for x in index_part.strip('()').split(','))
+                except ValueError as e:
+                    logger.warning(f"Failed to parse grid index from line: {line}. Error: {e}")
+                    continue
+                
+                # Ensure params_part is properly formatted using list comprehension
+                try:
+                    params = [float(x.strip()) for x in params_part.split(',')]
+                except ValueError as e:
+                    logger.warning(f"Failed to parse parameters from line: {line}. Error: {e}")
+                    continue
+
+                # Store in dictionary
+                params_dict[index] = params
+
+        # Remove the individual worker file after processing
+        os.remove(file_path)
+
+    # Determine the maximum grid dimensions from the data
+    max_i = max(idx[0] for idx in params_dict.keys())
+    max_j = max(idx[1] for idx in params_dict.keys())
+
+    # Create a grid for all indices
+    full_grid_indices = [(i, j) for i in range(1, max_i + 1) for j in range(1, max_j + 1)]
+    
+    # Prepare data for interpolation
+    known_indices = np.array(list(params_dict.keys()))
+    known_values = np.array(list(params_dict.values()))
+    
+    # Use KDTree-based method to fill NaN values with the nearest available value
+    interpolated_values = fill_nan_with_nearest(known_indices, known_values, full_grid_indices)
+
+    # Create an ordered dictionary for all grid points
+    ordered_params = {idx: params for idx, params in zip(full_grid_indices, interpolated_values)}
+    
+    # Return both the original parameters (without interpolation) and the ordered interpolated parameters
+    return ordered_params, params_dict
+
+def save_ordered_params(output_dir, ordered_params, filename):
+
+    output_file_path = os.path.join(output_dir, filename)
+    
+    with open(output_file_path, 'w') as outfile:
+        for (i, j), params in ordered_params.items():
+            shape, scale, loc = params
+            outfile.write(f"({i}, {j}): {shape:.4f}, {scale:.4f}, {loc:.4f}\n")
 
 
 def fit_gpd_to_grid_point(time_series, threshold):
@@ -65,15 +167,15 @@ def main():
     SEASON = 'DJF'
 
     
-    logging.info(f"\n\n\n Fitting eGPD params to grid points for Experiment {EXPERIMENT}, Period {PERIOD}, Season {SEASON}\n\n")
+    logger.info(f"\n\n\n Fitting GPD params to grid points for Experiment {EXPERIMENT}, Period {PERIOD}, Season {SEASON}\n\n")
 
-    dataset_file_path = f'spatial-extremes/data/{EXPERIMENT}/{PERIOD}/{SEASON}/nc'
+    # Use a wildcard to find the .nc file without specifying the full name
+    dataset_file_path = glob.glob(f'spatial-extremes/data/{EXPERIMENT}/{PERIOD}/{SEASON}/*.nc')
     output_dir = f'spatial-extremes/experiments/{EXPERIMENT}/{PERIOD}/{SEASON}'
 
     # Create the output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
-
-    ds = xr.open_dataset(dataset_file_path)
+    ds = xr.open_dataset(dataset_file_path[0], engine='netcdf4')
     var_name = list(ds.data_vars)[0]
     Z_obs = ds[var_name].values
 
@@ -81,14 +183,13 @@ def main():
     n_lat, n_lon = Z_obs.shape[1], Z_obs.shape[2]
     indices = [(i, j) for i in range(n_lat) for j in range(n_lon)]
     total_jobs = len(indices)
-
-    logging.info(f"Total of {total_jobs} grid points to process.")
+    logger.info(f"There are {len(ds.time)} time slices to process.")
+    logger.info(f"Total of {total_jobs} grid points to process.")
 
     # Use os.cpu_count() to determine the number of workers (CPUs)
     num_workers = os.cpu_count()
     jobs_per_worker = total_jobs // num_workers
-
-    logging.info(f"Using {num_workers} workers with {jobs_per_worker} jobs each.")
+    logger.info(f"Using {num_workers} workers with {jobs_per_worker} pixels each.")
 
     job_splits = [indices[i:i + jobs_per_worker] for i in range(0, total_jobs, jobs_per_worker)]
 
@@ -96,12 +197,11 @@ def main():
     if len(job_splits) > num_workers:
         job_splits[-2].extend(job_splits.pop())
 
-
     # Define the function to process each subset
     def process_subset(worker_id, subset):
         process_grid_subset(subset, Z_obs, threshold, worker_id, output_dir)
+    logger.info("\n\n\n     Starting the parallel processing of grid points....\n\n")
 
-    logging.info("\n\n\nStarting the parallel processing of grid points....\n\n\n")
     # Use lightning's map function to distribute the work
     map(
         fn=process_subset,
@@ -110,21 +210,15 @@ def main():
         output_dir=output_dir
     )
 
-    # Read all params and order them in a new file and deleting the old ones
-    all_params = []
-     # Concatenate all the parameter files into one and delete the originals
-    output_file_path = os.path.join(output_dir, "GPD_params.txt")
-    with open(output_file_path, 'w') as outfile:
-        # Collect all files matching the pattern
-        txt_files = glob.glob(os.path.join(output_dir, "GPD_params_worker_*.txt"))
-        for file_path in txt_files:
-            with open(file_path, 'r') as infile:
-                # Write each file's contents to the main output file
-                outfile.write(infile.read())
-            # Remove the individual worker file after processing
-            os.remove(file_path)
+    # Read, order, and save both the original and interpolated parameter files
+    ordered_params, original_params = read_and_order_params(output_dir)
 
-    logging.info(f"All parameters have been consolidated into {output_file_path} and old files have been deleted.")
-
+    # Save the original parameters (without interpolation)
+    save_ordered_params(output_dir, original_params, "GPD_params.txt")
+    logger.info(f"All parameters have been saved into GPD_params.txt")
+    
+    # Save the interpolated parameters
+    save_ordered_params(output_dir, ordered_params, "GPD_params_interpolated.txt")
+    logger.info(f"All parameters have been interpolated GPD_params_interpolated.txt.")
 if __name__ == "__main__":
     main()

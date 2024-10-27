@@ -258,3 +258,26 @@ for point, metrics in pointwise_metrics.items():
     print(f"{point}:")
     for metric_name, value in metrics.items():
         print(f"  {metric_name}: {value}")
+
+
+def mean_residual_life_plot(data, thresholds):
+    means = []
+    for t in thresholds:
+        exceedances = data[data > t] - t
+        if len(exceedances) > 0:
+            means.append(np.mean(exceedances))
+        else:
+            means.append(np.nan)
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(thresholds, means, marker='o')
+    plt.xlabel('Threshold')
+    plt.ylabel('Mean Excess')
+    plt.title('Mean Residual Life Plot')
+    plt.grid(True)
+    plt.show()
+
+# Example usage
+data = np.random.randn(1000)  # Replace with your dataset
+thresholds = np.linspace(np.min(data), np.percentile(data, 95), 50)
+mean_residual_life_plot(data, thresholds)
