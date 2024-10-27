@@ -142,10 +142,10 @@ def process_grid_subset(subset_indices, obs, worker_id, output_dir):
     - worker_id: Unique ID for the worker (used for file naming)
     - output_dir: Directory to save output files
     """
-    output_filepath = os.path.join(output_dir, f"GEV_params_worker_{worker_id}.txt")
+    output_filepath = os.path.join(output_dir, f"GEV_params_worker_{worker_id[0]}.txt")
 
     with open(output_filepath, 'w') as file:
-        for i, j in subset_indices:
+        for i, j in worker_id[1]:
             time_series = obs[:, i, j]
             shape, loc, scale = fit_gev_to_grid_point(time_series)
             if not np.isnan(shape):
@@ -155,9 +155,9 @@ def process_grid_subset(subset_indices, obs, worker_id, output_dir):
 def main():
     # Load the dataset
 
-    EXPERIMENT = '2'
-    PERIOD = "2010-2024" # 
-    SEASON = 'DJF'
+    EXPERIMENT = '4'
+    PERIOD     = "1998-2010" #  "1998-2010" "2010-2024"
+    SEASON     = 'DJF'         # 
 
     
     logger.info(f"\n\n\n Fitting GPD params to grid points for Experiment {EXPERIMENT}, Period {PERIOD}, Season {SEASON}\n\n")

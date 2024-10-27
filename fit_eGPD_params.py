@@ -24,7 +24,7 @@ file_handler.setFormatter(file_formatter)
 
 # Create a handler for logging to the console with INFO level
 console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)  # Only logs INFO level and above to the console
+console_handler.setLevel(logging.INFO)  # Only logs INFO level and above to the console
 console_formatter = logging.Formatter('%(asctime)s - %(message)s')
 console_handler.setFormatter(console_formatter)
 
@@ -155,9 +155,10 @@ def process_grid_subset(subset_indices, obs, threshold, worker_id, output_dir):
 def main():
     # Load the dataset
     threshold = 0.01
-    EXPERIMENT = '3'
-    PERIOD = "1998-2010" # 
-    SEASON = 'DJF' #
+
+    EXPERIMENT = '2'
+    PERIOD     = "1998-2010" #  "2010-2024"
+    SEASON     = "Annual" #'Annual' # 
 
     
     logger.info(f"\n\n\n Fitting eGPD params to grid points for Experiment {EXPERIMENT}, Period {PERIOD}, Season {SEASON}\n\n")
