@@ -155,9 +155,9 @@ def process_grid_subset(subset_indices, obs, threshold, worker_id, output_dir):
 def main():
     # Load the dataset
     threshold = 0.01
-    EXPERIMENT = '4'
+    EXPERIMENT = '2'
     PERIOD = "2010-2024" # 
-    SEASON = 'SON' #
+    SEASON = 'Annual' #
 
     
     logger.info(f"\n\n\n Fitting eGPD params to grid points for Experiment {EXPERIMENT}, Period {PERIOD}, Season {SEASON}\n\n")
@@ -177,7 +177,7 @@ def main():
     indices = [(i, j) for i in range(n_lat) for j in range(n_lon)]
     total_jobs = len(indices)
     logger.info(f"There are {len(ds.time)} time slices to process.")
-    logger.info(f"Total of {total_jobs} grid points to process.")
+    logger.info(f"Total of {total_jobs} grid points (= pixels) to process.")
 
     # Use os.cpu_count() to determine the number of workers (CPUs)
     num_workers = os.cpu_count()
