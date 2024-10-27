@@ -154,11 +154,11 @@ def process_grid_subset(subset_indices, obs, threshold, worker_id, output_dir):
 
 def main():
     # Load the dataset
-    threshold = 0.01
+    threshold = 0.1
 
-    EXPERIMENT = '2'
-    PERIOD     = "1998-2010" #  "2010-2024"
-    SEASON     = "Annual" #'Annual' # 
+    EXPERIMENT = 'RACMO_ens=1'
+    PERIOD     = "1991-2020" #  "2010-2024"
+    SEASON     = "SON" #'Annual' # 
 
     
     logger.info(f"\n\n\n Fitting eGPD params to grid points for Experiment {EXPERIMENT}, Period {PERIOD}, Season {SEASON}\n\n")
