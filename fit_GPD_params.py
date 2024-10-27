@@ -24,7 +24,7 @@ file_handler.setFormatter(file_formatter)
 
 # Create a handler for logging to the console with INFO level
 console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)  # Only logs INFO level and above to the console
+console_handler.setLevel(logging.INFO)  # Only logs INFO level and above to the console
 console_formatter = logging.Formatter('%(asctime)s - %(message)s')
 console_handler.setFormatter(console_formatter)
 
@@ -57,7 +57,7 @@ def read_and_order_params(output_dir):
     params_dict = {}
 
     # Collect all files matching the pattern
-    txt_files = glob.glob(os.path.join(output_dir, "GPD_params_worker_*.txt"))
+    txt_files = glob.glob(os.path.join(output_dir, "eGPD_params_worker_*.txt"))
     
     # Read all files and populate the dictionary
     for file_path in txt_files:
@@ -88,14 +88,11 @@ def read_and_order_params(output_dir):
 
         # Remove the individual worker file after processing
         os.remove(file_path)
-
     # Determine the maximum grid dimensions from the data
     max_i = max(idx[0] for idx in params_dict.keys())
     max_j = max(idx[1] for idx in params_dict.keys())
-
     # Create a grid for all indices
     full_grid_indices = [(i, j) for i in range(1, max_i + 1) for j in range(1, max_j + 1)]
-    
     # Prepare data for interpolation
     known_indices = np.array(list(params_dict.keys()))
     known_values = np.array(list(params_dict.values()))
@@ -156,70 +153,70 @@ def process_grid_subset(subset_indices, obs, threshold, worker_id, output_dir):
             time_series = obs[:, i, j]
             shape, loc, scale  = fit_gpd_to_grid_point(time_series, threshold)
             if not np.isnan(shape):
-                logger.debug(f"GPD fitted to grid point ({i}, {j}): shape={shape:.4f}, loc={loc:.4f}, scale={scale:.4f}, p={p:.4f}")
-                file.write(f"({i+1}, {j+1}): {shape:.4f}, {loc:.4f}, {scale:.4f}, {p:.4f}\n")
+                logger.debug(f"GPD fitted to grid point ({i}, {j}): shape={shape:.4f}, loc={loc:.4f}, scale={scale:.4f}")
+                file.write(f"({i+1}, {j+1}): {shape:.4f}, {loc:.4f}, {scale:.4f}\n")
 
 def main():
     # Load the dataset
-    threshold = 0.01
+    threshold = 11
     
-    EXPERIMENT = 'RACMO_ens=1'
-    PERIOD     = "2036-2065" #  "2010-2024" 1991-2020
-    SEASON     = "DJF" #'Annual' # 
+    EXPERIMENT = 'RACMO_ens=1' #RACMO_ens=1'
+    # PERIOD     = "2036-2065" #  "2010-2024" 1991-2020  "2010-2024" 
+    # SEASON     = "MAM" #'Annual' # 
+    for PERIOD in ["1991-2020", "2019-2048", "2036-2065" ]:                #   ["2010-2024",  "1998-2010"]
+        for SEASON in ["DJF", "MAM", "JJA", "SON"]: #, "Annual"]: # ["DJF", "MAM", "JJA", "SON"] 
+            logger.info(f"\n\n\n Fitting GPD params to grid points for Experiment {EXPERIMENT}, Period {PERIOD}, Season {SEASON}\n\n")
 
-    
-    logger.info(f"\n\n\n Fitting GPD params to grid points for Experiment {EXPERIMENT}, Period {PERIOD}, Season {SEASON}\n\n")
+            # Use a wildcard to find the .nc file without specifying the full name
+            dataset_file_path = glob.glob(f'spatial-extremes/data/{EXPERIMENT}/{PERIOD}/{SEASON}/*.nc')
+            output_dir = f'spatial-extremes/experiments/{EXPERIMENT}/{PERIOD}/{SEASON}'
 
-    # Use a wildcard to find the .nc file without specifying the full name
-    dataset_file_path = glob.glob(f'spatial-extremes/data/{EXPERIMENT}/{PERIOD}/{SEASON}/*.nc')
-    output_dir = f'spatial-extremes/experiments/{EXPERIMENT}/{PERIOD}/{SEASON}'
+            # Create the output directory if it doesn't exist
+            os.makedirs(output_dir, exist_ok=True)
+            ds = xr.open_dataset(dataset_file_path[0], engine='netcdf4')
+            var_name = list(ds.data_vars)[0]
+            Z_obs = ds[var_name].values
 
-    # Create the output directory if it doesn't exist
-    os.makedirs(output_dir, exist_ok=True)
-    ds = xr.open_dataset(dataset_file_path[0], engine='netcdf4')
-    var_name = list(ds.data_vars)[0]
-    Z_obs = ds[var_name].values
+            # Determine the grid size
+            n_lat, n_lon = Z_obs.shape[1], Z_obs.shape[2]
+            indices = [(i, j) for i in range(n_lat) for j in range(n_lon)]
+            total_jobs = len(indices)
+            logger.info(f"There are {len(ds.time)} time slices to process.")
+            logger.info(f"Total of {total_jobs} grid points to process.")
 
-    # Determine the grid size
-    n_lat, n_lon = Z_obs.shape[1], Z_obs.shape[2]
-    indices = [(i, j) for i in range(n_lat) for j in range(n_lon)]
-    total_jobs = len(indices)
-    logger.info(f"There are {len(ds.time)} time slices to process.")
-    logger.info(f"Total of {total_jobs} grid points to process.")
+            # Use os.cpu_count() to determine the number of workers (CPUs)
+            num_workers = os.cpu_count()
+            jobs_per_worker = total_jobs // num_workers
+            logger.info(f"Using {num_workers} workers with {jobs_per_worker} pixels each.")
 
-    # Use os.cpu_count() to determine the number of workers (CPUs)
-    num_workers = os.cpu_count()
-    jobs_per_worker = total_jobs // num_workers
-    logger.info(f"Using {num_workers} workers with {jobs_per_worker} pixels each.")
+            job_splits = [indices[i:i + jobs_per_worker] for i in range(0, total_jobs, jobs_per_worker)]
 
-    job_splits = [indices[i:i + jobs_per_worker] for i in range(0, total_jobs, jobs_per_worker)]
+            # Ensure each worker has roughly the same amount of work
+            if len(job_splits) > num_workers:
+                job_splits[-2].extend(job_splits.pop())
 
-    # Ensure each worker has roughly the same amount of work
-    if len(job_splits) > num_workers:
-        job_splits[-2].extend(job_splits.pop())
+            # Define the function to process each subset
+            def process_subset(worker_id, subset):
+                process_grid_subset(subset, Z_obs, threshold, worker_id, output_dir)
+            logger.info("\n\n\n     Starting the parallel processing of grid points....\n\n")
 
-    # Define the function to process each subset
-    def process_subset(worker_id, subset):
-        process_grid_subset(subset, Z_obs, threshold, worker_id, output_dir)
-    logger.info("\n\n\n     Starting the parallel processing of grid points....\n\n")
+            # Use lightning's map function to distribute the work
+            map(
+                fn=process_subset,
+                inputs=[(worker_id, job_splits[worker_id]) for worker_id in range(len(job_splits))],
+                num_workers=num_workers,
+                output_dir=output_dir
+            )
 
-    # Use lightning's map function to distribute the work
-    map(
-        fn=process_subset,
-        inputs=[(worker_id, job_splits[worker_id]) for worker_id in range(len(job_splits))],
-        num_workers=num_workers,
-        output_dir=output_dir
-    )
+            # Read, order, and save both the original and interpolated parameter files
+            ordered_params, original_params = read_and_order_params(output_dir)
 
-    # Read, order, and save both the original and interpolated parameter files
-    ordered_params, original_params = read_and_order_params(output_dir)
-
-    # Save the original parameters (without interpolation)
-    save_ordered_params(output_dir, original_params, "GPD_params.txt")
-    logger.info(f"All parameters have been saved into GPD_params.txt")
-    
-    # Save the interpolated parameters
-    save_ordered_params(output_dir, ordered_params, "GPD_params_interpolated.txt")
-    logger.info(f"All parameters have been interpolated GPD_params_interpolated.txt.")
+            # Save the original parameters (without interpolation)
+            save_ordered_params(output_dir, original_params, f"GPD_params_threshold_{threshold}.txt")
+            logger.info(f"All parameters have been saved into GPD_params.txt")
+            
+            # Save the interpolated parameters
+            save_ordered_params(output_dir, ordered_params, f"GPD_params_interpolated_threshold_{threshold}.txt")
+            logger.info(f"All parameters have been interpolated GPD_params_interpolated.txt.")
 if __name__ == "__main__":
     main()
