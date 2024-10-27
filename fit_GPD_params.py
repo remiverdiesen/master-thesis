@@ -24,7 +24,7 @@ file_handler.setFormatter(file_formatter)
 
 # Create a handler for logging to the console with INFO level
 console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)  # Only logs INFO level and above to the console
+console_handler.setLevel(logging.DEBUG)  # Only logs INFO level and above to the console
 console_formatter = logging.Formatter('%(asctime)s - %(message)s')
 console_handler.setFormatter(console_formatter)
 
@@ -154,7 +154,7 @@ def process_grid_subset(subset_indices, obs, threshold, worker_id, output_dir):
     with open(output_filepath, 'w') as file:
         for i, j in worker_id[1]:
             time_series = obs[:, i, j]
-            shape, loc, scale, p = fit_gpd_to_grid_point(time_series, threshold)
+            shape, loc, scale  = fit_gpd_to_grid_point(time_series, threshold)
             if not np.isnan(shape):
                 logger.debug(f"GPD fitted to grid point ({i}, {j}): shape={shape:.4f}, loc={loc:.4f}, scale={scale:.4f}, p={p:.4f}")
                 file.write(f"({i+1}, {j+1}): {shape:.4f}, {loc:.4f}, {scale:.4f}, {p:.4f}\n")
@@ -162,8 +162,8 @@ def process_grid_subset(subset_indices, obs, threshold, worker_id, output_dir):
 def main():
     # Load the dataset
     threshold = 0.01
-    EXPERIMENT = '2'
-    PERIOD = "2010-2024" # 
+    EXPERIMENT = '3'
+    PERIOD = "1998-2010" # 
     SEASON = 'DJF'
 
     
