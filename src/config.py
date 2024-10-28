@@ -8,10 +8,10 @@ from dataclasses import dataclass
 class Config:
     # Configuration parameters with default values
     train: bool = True
-    experiment: int = 2
+    experiment: int = 3
     season: str = "DJF" 
     period:str = "2010-2024"
-    model_type: str = 'eGPD'  # 'GEV' 'eGPD'or 'GPD'
+    model_type: str = 'GPD'  # 'GEV' 'eGPD'or 'GPD'
     
     # Directories (initialized with defaults, will be overridden if reading from config file)
     root_dir: str = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -44,11 +44,11 @@ class Config:
     n_train_percent: int = 80  # Percentage of dataset
     n_test_percent: int = 20
     noise_dim: int = 100
-    train_epoch: int = 5000
+    train_epoch: int = 1000
     decay_lab: int = 90
     n_sub_ids: int = 25
     smooth_factor: float = 0.1
-    batch_size: int = 700
+    batch_size: int = 50
     LAMBDA: float = 0.1
     LAMB_epoch: int = 0
 

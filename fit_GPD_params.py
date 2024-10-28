@@ -158,13 +158,13 @@ def process_grid_subset(subset_indices, obs, threshold, worker_id, output_dir):
 
 def main():
     # Load the dataset
-    threshold = 11
+    threshold = 4.4
     
-    EXPERIMENT = 'RACMO_ens=1' #RACMO_ens=1'
+    EXPERIMENT = '4' #RACMO_ens=1'
     # PERIOD     = "2036-2065" #  "2010-2024" 1991-2020  "2010-2024" 
     # SEASON     = "MAM" #'Annual' # 
-    for PERIOD in ["1991-2020", "2019-2048", "2036-2065" ]:                #   ["2010-2024",  "1998-2010"]
-        for SEASON in ["DJF", "MAM", "JJA", "SON"]: #, "Annual"]: # ["DJF", "MAM", "JJA", "SON"] 
+    for PERIOD in ["2010-2024",  "1998-2010"]: #["1991-2020", "2019-2048", "2036-2065" ]:                #   ["2010-2024",  "1998-2010"]
+        for SEASON in ["DJF", "MAM", "JJA", "SON", "Annual"]: # ["DJF", "MAM", "JJA", "SON"] 
             logger.info(f"\n\n\n Fitting GPD params to grid points for Experiment {EXPERIMENT}, Period {PERIOD}, Season {SEASON}\n\n")
 
             # Use a wildcard to find the .nc file without specifying the full name
