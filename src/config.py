@@ -8,34 +8,64 @@ from dataclasses import dataclass
 class Config:
     # Configuration parameters with default values
     train: bool = True
-    experiment: int = 3
-    season: str = "DJF" 
+    experiment: str = '4'
+    threshold: str = "4.4"
+
+
+    season: str = "JJA" 
     period:str = "2010-2024"
-    model_type: str = 'GPD'  # 'GEV' 'eGPD'or 'GPD'
+    model_type: str = 'eGPD'  # 'GEV' 'eGPD'or 'GPD'
+    input_data_file = f'precip_10km_2010-2024_{season}_24h.nc'
     
-    # Directories (initialized with defaults, will be overridden if reading from config file)
-    root_dir: str = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    if experiment == '1':
+        # Directories (initialized with defaults, will be overridden if reading from config file)
+        root_dir: str = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
-    # Paths relative to the root directory
-    exp_dir: str = os.path.join(root_dir, 'experiments')
-    data_dir: str = os.path.join(root_dir, 'data')
-    
-    # Paths specific to the experiment number
-    experiment_dir: str = os.path.join(exp_dir, str(experiment))
-    experiment_data_dir: str = os.path.join(data_dir, data_dir, experiment, period, season)
-    
-    # Model and results directories specific to the experiment
-    models_dir: str = os.path.join(experiment_dir, period, season,  'model')
-    results_dir: str = os.path.join(experiment_dir, period, season, 'results')
-    figures_dir: str = os.path.join(experiment_dir, period, season, 'figures')
-    evaluation_dir: str = os.path.join(experiment_dir, period, season,'evaluation')
+        # Paths relative to the root directory
+        exp_dir: str = os.path.join(root_dir, 'experiments')
+        data_dir: str = os.path.join(root_dir, 'data')
+        
+        # Paths specific to the experiment number
+        experiment_dir: str = os.path.join(exp_dir, str(experiment))
+        experiment_data_dir: str = os.path.join(data_dir, experiment)
+        
+        # Model and results directories specific to the experiment
+        models_dir: str = os.path.join(experiment_dir,  'model', model_type)
+        results_dir: str = os.path.join(experiment_dir,  'results')
+        figures_dir: str = os.path.join(experiment_dir, 'figures')
+        evaluation_dir: str = os.path.join(experiment_dir, 'evaluation')
 
-    # Parameter file paths
-    params_file_path: str = os.path.join(experiment_dir, 'params', f'{model_type}_params_interpolated.txt')
+        # Parameter file paths
+        params_file_path: str = os.path.join(experiment_dir, 'params', f'{model_type}_params.txt')
 
-    # Data files
-    data_file: str = os.path.join(experiment_data_dir, 'precip_2.4km_2010-2024_DJF_1h.nc')
-    ids_file: str = os.path.join(data_dir, experiment, 'ids.txt')
+        # Data files
+        data_file: str = os.path.join(experiment_data_dir, 'precipitation_maxima.nc')
+        ids_file: str = os.path.join(data_dir, experiment, 'ids.txt')
+
+    else:
+        # Directories (initialized with defaults, will be overridden if reading from config file)
+        root_dir: str = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
+        # Paths relative to the root directory
+        exp_dir: str = os.path.join(root_dir, 'experiments')
+        data_dir: str = os.path.join(root_dir, 'data')
+        
+        # Paths specific to the experiment number
+        experiment_dir: str = os.path.join(exp_dir, str(experiment))
+        experiment_data_dir: str = os.path.join(data_dir, data_dir, experiment, period, season)
+        
+        # Model and results directories specific to the experiment
+        models_dir: str = os.path.join(experiment_dir, period, season,  'model')
+        results_dir: str = os.path.join(experiment_dir, period, season, 'results')
+        figures_dir: str = os.path.join(experiment_dir, period, season, 'figures')
+        evaluation_dir: str = os.path.join(experiment_dir, period, season,'evaluation')
+
+        # Parameter file paths
+        params_file_path: str = os.path.join(experiment_dir, period, season,  f'{model_type}_params_interpolated_threshold_{threshold}.txt')
+
+        # Data files
+        data_file: str = os.path.join(experiment_data_dir, input_data_file)
+        ids_file: str = os.path.join(data_dir, experiment, 'ids.txt')
 
     # Device configuration
     device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -44,7 +74,7 @@ class Config:
     n_train_percent: int = 80  # Percentage of dataset
     n_test_percent: int = 20
     noise_dim: int = 100
-    train_epoch: int = 1000
+    train_epoch: int = 500
     decay_lab: int = 90
     n_sub_ids: int = 25
     smooth_factor: float = 0.1
@@ -53,7 +83,7 @@ class Config:
     LAMB_epoch: int = 0
 
     # Learning rate and parameters as per DCGAN paper
-    learning_rate: float = 0.0002
+    learning_rate: float = 0.002 # 0 0.0002
     beta1: float = 0.5
 
     # Model parameters

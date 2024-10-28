@@ -18,7 +18,7 @@ from utils import weights_init, update_ema, compute_EC_loss, plot_loss_curve
 # Set up logging
 # =============================================================================
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(levelname)s - line: %(lineno)d - %(message)s "
 )
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 def train():
     logger.info("\n\n\n Setting up the config...\n")
-    config = Config.load_config(train=True)
+    config = Config()
     Config.save_config(config)
 
     # Initialize DataHandler

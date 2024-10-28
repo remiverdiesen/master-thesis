@@ -67,25 +67,67 @@ class Discriminator(nn.Module):
         self.bn1 = nn.BatchNorm2d(128) if batch_norm else nn.Identity()
         self.conv3 = nn.Conv2d(128, 256, kernel_size=(3, 3), stride=1, padding=0, bias=False)
         self.bn2 = nn.BatchNorm2d(256) if batch_norm else nn.Identity()
-        self.fc = nn.Linear(5 * 5 * 256, 1)
+        # Add an adaptive pooling layer to ensure a fixed output size
+        self.adaptive_pool = nn.AdaptiveAvgPool2d((5, 5))
+
+        self.fc = nn.Linear(5 * 5 * 256, 1) # Use pooling to reduce size to (5, 5)
+
     
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # Log the initial shape of the input tensor
+        # print(f"Input shape: {x.shape}")
+        
+        # First convolutional layer
         x = self.conv1(x)
+        # print(f"After conv1 shape: {x.shape}")
+        
         x = self.lrelu(x)
+        # print(f"After lrelu (post-conv1) shape: {x.shape}")
+        
         x = self.dropout(x)
-        #
+        # print(f"After dropout (post-conv1) shape: {x.shape}")
+        
+        # Second convolutional layer
         x = self.conv2(x)
+        # print(f"After conv2 shape: {x.shape}")
+        
         x = self.bn1(x)
+        # print(f"After bn1 (post-conv2) shape: {x.shape}")
+        
         x = self.lrelu(x)
+        # print(f"After lrelu (post-bn1) shape: {x.shape}")
+        
         x = self.dropout(x)
-        #
+        # print(f"After dropout (post-bn1) shape: {x.shape}")
+        
+        # Third convolutional layer
         x = self.conv3(x)
+        # print(f"After conv3 shape: {x.shape}")
+        
         x = self.bn2(x)
+        # print(f"After bn2 (post-conv3) shape: {x.shape}")
+        
         x = self.lrelu(x)
+        # print(f"After lrelu (post-bn2) shape: {x.shape}")
+        
         x = self.dropout(x)
-        # NOTE: Since we are using BCEWithLogitsLoss, which combines a sigmoid layer and binary cross-entropy loss in one, 
-        #       we should not apply a sigmoid activation in the Discriminator's output. The Discriminator should output logits directly.
+        # print(f"After dropout (post-bn2) shape: {x.shape}")
+        
+        # Use adaptive pooling to get a consistent 5x5 output
+        x = self.adaptive_pool(x)
+        # Flatten to match the input for the fully connected layer
         x = x.reshape(-1, 5 * 5 * 256)
+
+        # Reshaping before the fully connected layer
+        # x = x.reshape(-1, 5 * 5 * 256)
+        # x = x.reshape(-1, 256 * 14 * 8)  # Adjust this line
+
+        # print(f"After reshape shape: {x.shape}")
+        
+        # Fully connected layer
         logits = self.fc(x)
+        # print(f"Output logits shape: {logits.shape}\n\n")
+        
         return logits
+

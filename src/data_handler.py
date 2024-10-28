@@ -75,8 +75,10 @@ class DataHandler:
             self.Z_train = torch.tensor(train_set, dtype=torch.float32)
             self.Z_test  = torch.tensor(test_set, dtype=torch.float32)
             
-
-            self.params = self.get_params(self.config)
+            if self.config.model_type == 'eGPD':
+                self.params = self.get_eGPD_params(self.config)
+            else:     
+                self.params = self.get_params(self.config)
             logger.debug(f"Got distribution to observations.")
       
             # Normalize margins
@@ -99,7 +101,10 @@ class DataHandler:
                 test_set = self.normalize_margins_gpd(test_set)
                 logger.debug(f"Normalized margins using GPD CDF for train and test.")
                
-                
+            elif self.config.model_type == 'eGPD':
+                train_set = self.normalize_margins_egpd(train_set)
+                test_set = self.normalize_margins_egpd(test_set)
+                logger.debug(f"Normalized margins using GPD CDF for train and test.") 
             # Reshape data
             n_lat, n_lon = Z_obs.shape[1], Z_obs.shape[2]
             X_dim = [n_lat, n_lon, 1]
@@ -255,10 +260,29 @@ class DataHandler:
         """
         n_time, n_lat, n_lon = obs.shape
         uniform_data = np.zeros(obs.shape)
-
+        logger.debug(f'\n\n self.params shape:  {self.params.shape}')
+        logger.debug(f'obs.shape:  {obs.shape}')
         for i in range(n_lat):
             for j in range(n_lon):
                 shape, loc, scale = self.params[i, j, :]
+                if np.isnan(shape):
+                    uniform_data[:, i, j] = np.nan
+                    continue
+                time_series = obs[:, i, j]
+                cdf_values = genpareto.cdf(time_series, c=shape, loc=loc, scale=scale)
+                uniform_data[:, i, j] = cdf_values
+        return uniform_data
+    
+    def normalize_margins_egpd(self, obs: np.ndarray) -> np.ndarray:
+        """
+        Normalize the input data to uniform margins using fitted GPD CDFs.
+        """
+        n_time, n_lat, n_lon = obs.shape
+        uniform_data = np.zeros(obs.shape)
+
+        for i in range(n_lat):
+            for j in range(n_lon):
+                shape, loc, scale, p = self.params[i, j, :]
                 if np.isnan(shape):
                     uniform_data[:, i, j] = np.nan
                     continue
