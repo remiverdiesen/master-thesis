@@ -1,12 +1,22 @@
-## Spatial-extremes
-Models complex spatial dependencies between climate extremes in different locations. With evtGAN, we show that combining extreme value theory with a deep learning model (generative adversarial networks) can well represent complex spatial dependencies between extremes. Hence, instead of running expensive climate models, the approach can be used to sample many instances of spatially cooccurring extremes with realistic dependence structure, which may be used for climate risk modeling and stress testing of climate-sensitive systems.
+# Climate Credit Risk modelling
+This is the repository of the implementation of the master thesis of Remi Verdiesen, for the Vrije Universiteit and SAS Institute.
+
+### 
+
+
+Three parts:
+- Spatial-extremes
+- Hydrolic Modelling
+- Risk Assessment 
+
+
+Models complex spatial dependencies between climate extremes in different locations. With the evtGAN, we show that combining extreme value theory (evt) with a deep learning model (generative adversarial networks (GAN)) can well represent complex spatial dependencies between precipitation extremes. Hence, instead of running expensive climate models, the approach can be used to sample many instances of spatially cooccurring extremes with realistic dependence structure, which may be used for climate risk modeling and stress testing of climate-sensitive systems.
 
 Source: Application Paper: Boulaguiem et al. (2022) - Modeling and simulating spatial extremes by combining extreme value theory with generative adversarial networks.
 
 ### Experiments
 
 ![Experiments](docs/images/Experiments.jpg)
-
 
 ## Architecture evtGAN
 
