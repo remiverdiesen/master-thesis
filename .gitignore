@@ -1,8 +1,12 @@
 # Ignore Python virtual environments
 .venv/*
 
+
 #   
 data/*
+experiments/*
+test/*
+
 # Ignore VSCode settings
 .vscode/
 
