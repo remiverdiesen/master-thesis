@@ -2,10 +2,21 @@
 .venv/*
 
 
-#   
-data/*
-experiments/*
-test/*
+# part 1
+spatial-extremes/data/
+spatial-extremes/experiments/
+spatial-extremes/test/
+
+# part 2
+hydro-2dxy/data/
+hydro-2dxy/experiments/
+hydro-2dxy/test/
+
+# part 3
+risk-assessment/data/
+risk-assessment/experiments/
+risk-assessment/test/
+
 
 # Ignore VSCode settings
 .vscode/
