@@ -1,6 +1,5 @@
 # Ignore Python virtual environments
-.venv/*
-
+**/.venv/
 
 # part 1
 spatial-extremes/data/
@@ -14,15 +13,13 @@ hydro-2dxy/test/
 
 # part 3
 risk-assessment/data/
-risk-assessment/experiments/
-risk-assessment/test/
-
+risk-assessment/images/
 
 # Ignore VSCode settings
-.vscode/
+**/.vscode/
 
 # Ignore other common files
 __pycache__/
-*.pyc
-*.log
+**/.pyc
+**/.log
 
