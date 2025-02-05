@@ -8,13 +8,11 @@ from dataclasses import dataclass
 class Config:
     # Configuration parameters with default values
     train: bool = True
-    experiment: str = '4'
+    experiment: str = '1'
     threshold: str = "4.4"
-
-
     season: str = "JJA" 
     period:str = "2010-2024"
-    model_type: str = 'eGPD'  # 'GEV' 'eGPD'or 'GPD'
+    model_type: str = 'GEV'  # 'GEV' 'eGPD'or 'GPD'
     input_data_file = f'precip_10km_2010-2024_{season}_24h.nc'
     
     if experiment == '1':
