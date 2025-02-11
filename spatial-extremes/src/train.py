@@ -67,7 +67,7 @@ def train():
     # Initialize lists to store loss values per epoch
     generator_losses = []
     discriminator_losses = []
-    logger.info(f"\n\n\n Traingin the {config.model_type}-GAN...\n")
+    logger.info(f"\n\n\n Training the {config.model_type}-GAN...\n")
     # Training loop
     num_batches = n_train // batch_size
     for epoch in range(config.train_epoch):
