@@ -31,25 +31,20 @@ class Generator(nn.Module):
 
 
     def forward(self, z: torch.Tensor) -> torch.Tensor:
-        # 
         x = self.fc(z)
         x = x.reshape(-1, 1024, 5, 5)
         x = self.bn0(x)
         x = self.lrelu(x)
         x = self.dropout(x)
-        #
         x = self.deconv1(x)
         x = self.bn1(x)
         x = self.lrelu(x)
         x = self.dropout(x)
-        #
         x = self.deconv2(x)
         x = self.bn2(x)
         x = self.lrelu(x)
         x = self.dropout(x)
-        #
         x = self.deconv3(x)
-    
         return x
 
 class Discriminator(nn.Module):

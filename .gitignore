@@ -1,5 +1,30 @@
-# Ignore Python virtual environments
+# Ignore environments
 **/.venv/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Django stuff
+*.log
+local_settings.py
+db.sqlite3
+
+# Ignore VSCode settings
+**/.vscode/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+**/.pyc
+**/.log
+
+# Thesis stuff
+**/benchmark
+**/results
+data/
+/experiments/
+images/
+*.pkl
+*.log
 
 # part 1
 spatial-extremes/data/
@@ -14,12 +39,3 @@ hydro-2dxy/test/
 # part 3
 risk-assessment/data/
 risk-assessment/images/
-
-# Ignore VSCode settings
-**/.vscode/
-
-# Ignore other common files
-__pycache__/
-**/.pyc
-**/.log
-

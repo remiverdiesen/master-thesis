@@ -28,7 +28,7 @@ class Config:
         experiment_data_dir: str = os.path.join(data_dir, experiment)
         
         # Model and results directories specific to the experiment
-        models_dir: str = os.path.join(experiment_dir,  'model', model_type)
+        models_dir: str = os.path.join(experiment_dir,  'model')
         results_dir: str = os.path.join(experiment_dir,  'results')
         figures_dir: str = os.path.join(experiment_dir, 'figures')
         evaluation_dir: str = os.path.join(experiment_dir, 'evaluation')
