@@ -1,7 +1,9 @@
+import os
+import yaml
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import yaml
+from datetime import datetime
 from models.evtgan import Generator, Discriminator
 from utils.data_utils import load_and_preprocess_data
 
@@ -47,13 +49,26 @@ def train(config):
         g_loss = criterion(fake_logits, torch.ones_like(fake_logits))
         g_loss.backward()
         g_optimizer.step()
-
-        if epoch % 1000 == 0:
+       
+        if epoch % 10 == 0:
             print(f"Epoch {epoch}, D Loss: {d_loss.item():.4f}, G Loss: {g_loss.item():.4f}")
 
     # Save model
-    torch.save(generator.state_dict(), config['training']['save_model'])
-    print(f"Training complete. Generator saved to {config['training']['save_model']}")
+    # After training is complete
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    subdir = os.path.join('saved_models', timestamp)
+    os.makedirs(subdir, exist_ok=True)
+
+    # Save the generator's final weights
+    torch.save(generator.state_dict(), os.path.join(subdir, 'generator_weights.pth'))
+
+    # Save the configuration
+    with open(os.path.join(subdir, 'config.yaml'), 'w') as f:
+        yaml.dump(config, f)  # 'config' is the dictionary loaded from config.yaml
+
+    # Save the TorchScript version of the generator
+    scripted_generator = torch.jit.script(generator)
+    scripted_generator.save(os.path.join(subdir, 'generator.pt'))
 
 if __name__ == "__main__":
     config = load_config("config/config.yaml")
