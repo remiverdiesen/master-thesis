@@ -81,7 +81,7 @@ class Config:
     LAMB_epoch: int = 0
 
     # Learning rate and parameters as per DCGAN paper
-    learning_rate: float = 0.002 # 0 0.0002
+    learning_rate: float = 0.002 
     beta1: float = 0.5
 
     # Model parameters
@@ -92,7 +92,7 @@ class Config:
 
     # Options
     use_empirical_cdf: bool = False  # Use empirical CDF if True
-    use_EC_regul: bool = False      # Use EC regularization if True
+    use_EC_regul: bool = False       # Use EC regularization if True
 
     @staticmethod
     def save_config(config, filename: str = "config.txt") -> None:

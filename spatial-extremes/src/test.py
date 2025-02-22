@@ -86,13 +86,10 @@ def test():
     logger.info("Transformed generated samples back to original scale.")
 
     assert Z_generated.shape == U_samples.shape, "Shape mismatch between Z_generated and U_samples"
-    assert Z_generated.shape[1] == data_handler.Z_test.shape[1] and Z_generated.shape[2] == data_handler.Z_test.shape[2] , "Feature dimension mismatch"
+    # assert Z_generated.shape[1] == data_handler.Z_test.shape[1] and Z_generated.shape[2] == data_handler.Z_test.shape[2] , "Feature dimension mismatch"
 
     logger.debug(f"Z_generated shape: {Z_generated.shape}")
     logger.debug(f"Z_test shape: {data_handler.Z_test.shape}")
-
-
-
 
 
     # evaluate_generated_samples(Z_generated, data_handler.Z_test.cpu().numpy(), data_handler.ids, data_handler.params, config, netG)

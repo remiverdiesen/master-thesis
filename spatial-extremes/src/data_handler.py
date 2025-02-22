@@ -140,9 +140,9 @@ class DataHandler:
             # Adjust indices for padding
             pad_adjust = pad
             self.ids = self.ids + pad_adjust  # Adjust for padding
-            self.ids = self.ids[:, [1, 0]]      # Now ids_ is in (latitude, longitude) order
+            self.ids = self.ids[:, [1, 0]]    # Now ids_ is in (latitude, longitude) order
 
-            # Prepare position coordinates for EC computation
+            # Prepare position coordinates
             self.pos_coordinates = self.pos_coords(self.config.n_sub_ids)
             logger.info("Data preparation complete!")
 

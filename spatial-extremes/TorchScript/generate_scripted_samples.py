@@ -2,7 +2,7 @@ import torch
 
 def main():
     # Load the TorchScript model saved as 'scripted_GANGeneratorWrapper.pt'
-    scripted_model = torch.jit.load("scripted_GANGenerator.pt")
+    scripted_model = torch.jit.load(r"C:\Users\reverd\Repositories\master-thesis\spatial-extremes\TorchScript\scripted_GANGenerator.pt")
     print("Scripted model loaded successfully.")
 
     # Define the noise dimension (should match the one used when scripting)

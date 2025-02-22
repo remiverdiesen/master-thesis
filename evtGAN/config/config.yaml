@@ -1,0 +1,16 @@
+data:
+  data_file: "data/train_data.csv"
+  ids_file: "data/ids_EU.csv"
+  output_dir: "data/synthetic"
+model:
+  noise_dim: 100
+  batch_size: 50
+  n_epochs: 30000
+  decay: 0.9
+  lambda_reg: 0.0
+  n_sub_ids: 25
+  d_train_it: 2
+  learning_rate: 0.0002
+training:
+  use_gpu: true
+  save_interval: 7500 # Save every 1/4, 2/4, 3/4, and last epoch
