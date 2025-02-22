@@ -21,22 +21,15 @@ __pycache__/
 # Thesis stuff
 **/benchmark
 **/results
-data/
 /experiments/
 images/
 *.pkl
-*.log
 
-# part 1
-spatial-extremes/data/
-spatial-extremes/experiments/
-spatial-extremes/test/
 
-# part 2
 hydro-2dxy/data/
 hydro-2dxy/experiments/
 hydro-2dxy/test/
 
-# part 3
+
 risk-assessment/data/
 risk-assessment/images/
