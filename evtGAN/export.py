@@ -1,7 +1,9 @@
 import torch
+import yaml
 import pandas as pd
 from models.evtgan import Generator
 from utils.data_utils import get_relevant_points
+from utils.data_utils import load_and_preprocess_data
 
 def export_synthetic_data(config_file, checkpoint_path, n_samples=10000):
     with open(config_file, 'r') as f:
@@ -31,4 +33,4 @@ def export_synthetic_data(config_file, checkpoint_path, n_samples=10000):
     print(f"Synthetic data saved to {output_path}")
 
 if __name__ == "__main__":
-    export_synthetic_data("config/config.yaml", "data/synthetic/generator_epoch_29999.pt")
+    export_synthetic_data("config/config.yaml", "data/synthetic/generator.pt")

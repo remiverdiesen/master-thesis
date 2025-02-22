@@ -1,30 +1,35 @@
 import numpy as np
-import pandas as pd
+import netCDF4 as nc
 import torch
 
-def load_and_preprocess_data(data_file, ids_file):
-    # Load data
-    df = pd.read_csv(data_file, sep=',', header=None).iloc[1:].values.astype(float).T
-    ids_EU = pd.read_csv(ids_file, sep=',', header=None).iloc[1:].values.astype(int) - 1
+def load_netcdf(file_path):
+    """Load precipitation maxima from NetCDF file."""
+    ds = nc.Dataset(file_path)
+    precip_max = ds.variables['precip_max'][:]  # Shape: [time, lat, lon]
+    ds.close()
+    return precip_max  # [n_samples, height, width]
 
-    # Transform to uniform using ECDF
-    def ecdf(data):
-        n = len(data)
-        ranks = np.apply_along_axis(lambda x: np.argsort(x) + 1, 0, data)
-        return ranks / (n + 1)
+def ecdf_transform(data):
+    """Transform data to uniform margins using empirical CDF."""
+    n, h, w = data.shape
+    data_flat = data.reshape(n, -1)  # [n, h*w]
+    u_flat = np.zeros_like(data_flat, dtype=np.float32)
+    for j in range(data_flat.shape[1]):
+        if np.all(data_flat[:, j] == data_flat[0, j]):  # Handle constant data
+            u_flat[:, j] = 0
+        else:
+            ranks = np.argsort(np.argsort(data_flat[:, j])) + 1
+            u_flat[:, j] = ranks / (n + 1)  # Uniform in (0,1)
+    return u_flat.reshape(n, h, w, 1)
 
-    df = ecdf(df)
+def pad_data(data, pad_width=1):
+    """Pad data with zeros for GAN input size."""
+    return np.pad(data, ((0, 0), (pad_width, pad_width), (pad_width, pad_width), (0, 0)), 
+                  mode='constant', constant_values=0)
 
-    # Reshape and pad
-    n_lat, n_lon = len(np.unique(ids_EU[:, 1])), len(np.unique(ids_EU[:, 0]))
-    df = df.reshape(-1, n_lat, n_lon, 1)
-    df = np.pad(df, ((0, 0), (1, 1), (1, 1), (0, 0)), mode='constant', constant_values=0)
-    return torch.tensor(df, dtype=torch.float32), torch.tensor(ids_EU, dtype=torch.long)
-
-def get_relevant_points(data, ids):
-    batch_size = data.size(0)
-    num_points = ids.size(0)
-    ids_lat = ids[:, 1].view(1, -1).expand(batch_size, -1)
-    ids_lon = ids[:, 0].view(1, -1).expand(batch_size, -1)
-    batch_indices = torch.arange(batch_size).view(-1, 1).expand(-1, num_points)
-    return data[batch_indices, ids_lat, ids_lon, 0]  # [batch_size, num_points]
+def load_and_preprocess_data(config):
+    """Load, transform, and pad training data."""
+    precip_max = load_netcdf(config['data']['train_file'])  # [n_samples, 18, 22]
+    u_train = ecdf_transform(precip_max)  # [n_samples, 18, 22, 1]
+    u_train_padded = pad_data(u_train)  # [n_samples, 20, 24, 1]
+    return torch.tensor(u_train_padded, dtype=torch.float32), precip_max
