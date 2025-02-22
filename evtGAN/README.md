@@ -38,19 +38,20 @@ Here’s the folder structure for the evtGAN repository:
 
 evtGAN/
 ├── config/
-│ └── config.yaml # Configuration file for hyperparameters and settings
+│ └── config.yaml 
 ├── data/
 │ ├── precipitation_maxima.nc  
 │ ├── ids.nc
 │ └── synthetic/ # Output folder for generated CSV files
 ├── models/
-│ └── evtgan.py # Contains Generator and Discriminator classes
+│ └── evtgan.py 
 ├── utils/
-│ ├── data_utils.py # Functions for loading and preprocessing NetCDF data
-│ └── evt_utils.py # Functions for EVT transformations (GEV fitting, etc.)
-├── train.py # Script to train the GAN model
-├── generate.py # Script to generate synthetic samples and save as CSV
-└── requirements.txt # Python dependencies
+│ ├── data_utils.py 
+│ └── evt_utils.py 
+├── train.py 
+├── generate.py 
+├── export.py 
+└── requirements.txt 
 
 #### File Descriptions
 

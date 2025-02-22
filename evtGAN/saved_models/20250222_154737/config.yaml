@@ -1,0 +1,15 @@
+data:
+  ids_file: data/ids.nc
+  output_dir: data/synthetic
+  train_file: data/precipitation_maxima.nc
+model:
+  batch_size: 50
+  decay: 0.9
+  lambda_reg: 0.0
+  learning_rate: 0.002
+  n_epochs: 30000
+  noise_dim: 100
+training:
+  save_interval: 10
+  save_model: generator.pt
+  use_gpu: true
