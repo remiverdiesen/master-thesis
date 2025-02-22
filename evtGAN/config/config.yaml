@@ -1,6 +1,6 @@
 data:
   train_file: "data/precipitation_maxima.nc"
-  ids_file: "data/ids.nc"
+  ids_file: "data/ids.csv"
   output_dir: "data/synthetic"
 model:
   noise_dim: 100
@@ -14,3 +14,4 @@ training:
   use_gpu: true
   save_interval: 10 
   save_model: "generator.pt"
+

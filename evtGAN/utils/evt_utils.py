@@ -14,7 +14,7 @@ def fit_gev(train_data):
 
 def transform_back(u_gen, params):
     """Transform uniform samples back to original scale using GEV."""
-    n_gen, c, h, w = u_gen.shape  # u_gen now has channel dim
+    n_gen, c, h, w = u_gen.shape  # u_gen: [n_gen, 1, h, w]
     z_gen = np.zeros((n_gen, h, w))
     for i in range(h):
         for j in range(w):
