@@ -28,7 +28,7 @@ class Generator(nn.Module):
         x = torch.nn.functional.leaky_relu(x, negative_slope=0.2)
         x = self.dropout(x)
         x = self.deconv3(x)
-        return torch.sigmoid(x)  # Output in [0,1]
+        return torch.sigmoid(x)  # Output: [batch_size, 1, 20, 24]
 
 class Discriminator(nn.Module):
     def __init__(self):

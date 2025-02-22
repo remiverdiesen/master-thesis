@@ -1,5 +1,6 @@
 # Ignore environments
 **/.venv/
+**/.venv_evtGAN/
 
 # Jupyter Notebook
 .ipynb_checkpoints

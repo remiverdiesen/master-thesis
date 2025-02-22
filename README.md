@@ -14,7 +14,7 @@ Three parts:
 
 'history'
 
-### commands lightning
+### commands
 
 'unset GITHUB_TOKEN'
 'git config --global user.name "remiverdiesen"'

@@ -25,6 +25,7 @@ def train(config):
     criterion = nn.BCEWithLogitsLoss()
 
     # Training loop
+    n_samples = u_train_tensor.size(0)
     for epoch in range(cfg['n_epochs']):
         # Train Discriminator
         d_optimizer.zero_grad()
@@ -32,7 +33,7 @@ def train(config):
         z = torch.randn(cfg['batch_size'], 1, 1, cfg['noise_dim'], device=device)
         fake_data = generator(z)
         fake_logits = discriminator(fake_data.detach())
-        d_loss_real = criterion(real_logits, 0.9 * torch.ones_like(real_logits))  # Label smoothing
+        d_loss_real = criterion(real_logits, 0.9 * torch.ones_like(real_logits))
         d_loss_fake = criterion(fake_logits, torch.zeros_like(fake_logits))
         d_loss = d_loss_real + d_loss_fake
         d_loss.backward()

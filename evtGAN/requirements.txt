@@ -1,6 +1,6 @@
 torch
 numpy
-netCDF4
+xarray
 pandas
 scipy
 pyyaml
