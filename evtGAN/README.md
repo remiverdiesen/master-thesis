@@ -1,3 +1,37 @@
+## 🚀 Getting Started
+
+Follow these steps to set up the project and get started with training or testing.
+
+### 1️) Create and Activate a Virtual Environment
+
+First, create a virtual environment in a cmd terminal. If you're using Python 3, run:
+
+```bash
+python -m venv .venv_evtGAN
+```
+
+After creating, activate the virtual environment:
+
+```bash
+.venv\Scripts\Activate
+```
+
+### 2) Install Required Packages
+
+After activating the virtual environment, install the required dependencies (this may take a while) using:
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3) Running Training or Testing Setup
+
+To run the training setup::
+
+```bash
+python train.py
+```
+
 ### Repository Structure
 
 Here’s the folder structure for the evtGAN repository:

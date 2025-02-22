@@ -20,7 +20,7 @@ Three parts:
 'git config --global user.name "remiverdiesen"'
 'git config --global user.email "remi.verdiesen@hetnet.nl"'
 'gh auth login'
-'git clone https://github.com/remiverdiesen/spatial-extremes.git'
+'git clone https://github.com/remiverdiesen/master-thesis.git'
 
 'ssh-keygen -t ed25519'
 'eval "$(ssh-agent -s)"'
