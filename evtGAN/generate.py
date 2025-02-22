@@ -4,12 +4,11 @@ import yaml
 import torch
 import numpy as np
 import pandas as pd
-from models.evtgan import Generator  # Adjust import based on your structure
+from models.evtgan import Generator
 from utils.data_utils import load_netcdf
 from utils.evt_utils import fit_gev, transform_back
 
 def load_config(model_dir):
-    """Load the configuration from the specified model directory."""
     config_path = os.path.join('saved_models', model_dir, 'config.yaml')
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Configuration file not found at {config_path}")
@@ -17,18 +16,27 @@ def load_config(model_dir):
         return yaml.safe_load(f)
 
 def generate_samples(model_dir, model_type, n_gen, device):
-    """Generate synthetic samples using the specified generator."""
-    # Load configuration
     config = load_config(model_dir)
     cfg = config['model']
 
-    # Load training data for GEV fitting (to transform samples back)
-    train_data = load_netcdf(config['data']['train_file'])
+    # Load training data for GEV fitting, discarding NaN values
+    train_data_full = load_netcdf(config['data']['train_file'])  # [n_samples, 18, 22]
+    # Remove rows with any NaN values
+    mask = ~np.any(np.isnan(train_data_full), axis=(1, 2))  # True where no NaN in row
+    train_data_clean = train_data_full[mask]
+    # Limit to n_train samples as in training
+    n_train = cfg['n_train']
+    if train_data_clean.shape[0] < n_train:
+        raise ValueError(f"After removing NaN values, only {train_data_clean.shape[0]} samples remain, but n_train={n_train} is required.")
+    train_data = train_data_clean[:n_train]  # Ensures we use the same subset as training
+    print(f"Using {train_data.shape[0]} clean samples for GEV fitting.")
+    
+    # Fit GEV parameters
     params = fit_gev(train_data)
 
-    # Load the generator based on model_type
+    # Load generator
     if model_type == 'pickle':
-        generator = Generator(noise_dim=cfg['noise_dim']).to(device)
+        generator = Generator(cfg['noise_dim']).to(device)
         weights_path = os.path.join('saved_models', model_dir, 'generator_weights.pth')
         if not os.path.exists(weights_path):
             raise FileNotFoundError(f"Weights file not found at {weights_path}")
@@ -40,7 +48,6 @@ def generate_samples(model_dir, model_type, n_gen, device):
         generator = torch.jit.load(scripted_path, map_location=device)
     else:
         raise ValueError("model_type must be 'pickle' or 'torchscript'")
-
     generator.eval()
 
     # Generate samples
@@ -62,26 +69,10 @@ def generate_samples(model_dir, model_type, n_gen, device):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate synthetic precipitation samples using evtGAN.")
-    parser.add_argument(
-        '--model_dir',
-        type=str,
-        required=True,
-        help="Subdirectory under saved_models/ to load the model from."
-    )
-    parser.add_argument(
-        '--model_type',
-        type=str,
-        choices=['pickle', 'torchscript'],
-        required=True,
-        help="Type of model to load: 'pickle' for weights or 'torchscript' for TorchScript model."
-    )
-    parser.add_argument(
-        '--n_gen',
-        type=int,
-        default=10000,
-        help="Number of samples to generate (default: 10000)."
-    )
+    parser.add_argument('--model_dir', type=str, required=True, help="Subdirectory under saved_models/")
+    parser.add_argument('--model_type', type=str, choices=['pickle', 'torchscript'], required=True, 
+                        help="Type of model to load: 'pickle' or 'torchscript'")
+    parser.add_argument('--n_gen', type=int, default=10000, help="Number of samples to generate")
     args = parser.parse_args()
-
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     generate_samples(args.model_dir, args.model_type, args.n_gen, device)

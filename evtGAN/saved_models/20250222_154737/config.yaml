@@ -4,6 +4,7 @@ data:
   train_file: data/precipitation_maxima.nc
 model:
   batch_size: 50
+  n_train: 50 
   decay: 0.9
   lambda_reg: 0.0
   learning_rate: 0.002

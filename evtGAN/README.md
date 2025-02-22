@@ -32,7 +32,14 @@ To run the training setup::
 python train.py
 ```
 
-### Repository Structure
+Check saved_models/<timestamp>/ for generator_weights.pth, config.yaml, and generator.pt.
+
+```bash
+python generate.py --model_dir <timestamp> --model_type pickle --n_gen 5000
+python generate.py --model_dir <timestamp> --model_type torchscript
+```
+
+### Repository Structure /teamspace/studios/this_studio/master-thesis/evtGAN/saved_models/20250222_154737
 
 Here’s the folder structure for the evtGAN repository:
 
