@@ -1,4 +1,4 @@
-## 🚀 Getting Started
+## Getting Started
 
 Follow these steps to set up the project and get started with training or testing.
 
@@ -39,26 +39,15 @@ python generate.py --model_dir <timestamp> --model_type pickle --n_gen 5000
 python generate.py --model_dir <timestamp> --model_type torchscript
 ```
 
-### Repository Structure /teamspace/studios/this_studio/master-thesis/evtGAN/saved_models/20250222_154737
+# Model Architecture
 
-Here’s the folder structure for the evtGAN repository:
+#### Generator
 
-evtGAN/
-├── config/
-│ └── config.yaml 
-├── data/
-│ ├── precipitation_maxima.nc  
-│ ├── ids.nc
-│ └── synthetic/ # Output folder for generated CSV files
-├── models/
-│ └── evtgan.py 
-├── utils/
-│ ├── data_utils.py 
-│ └── evt_utils.py 
-├── train.py 
-├── generate.py 
-├── export.py 
-└── requirements.txt 
+![Gen](C:\Users\reverd\Repositories\master-thesis\evtGAN\images\Generator.jpg)
+
+#### Discriminator
+
+![Dis](C:\Users\reverd\Repositories\master-thesis\evtGAN\images\Discriminator.jpg)
 
 #### File Descriptions
 

@@ -138,10 +138,10 @@ def generate_samples(model_dir, model_type, n_gen=None, years=None, device='cpu'
         output_data = []
         for day_idx in range(n_days):
             for _, row in ids_df.iterrows():
-                i_idx = int(row['I']) - 1  # Convert to 0-based index
-                j_idx = int(row['J']) - 1  # Convert to 0-based index
+                i_idx = int(row['I']) - 1  # column index
+                j_idx = int(row['J']) - 1  # row index
                 region_id = int(row['Region_ID'])
-                value = float(daily_rainfall[day_idx, i_idx, j_idx])
+                value = float(daily_rainfall[day_idx, j_idx, i_idx])  # Swapped indices
                 output_data.append([
                     int(row['I']),
                     int(row['J']),
