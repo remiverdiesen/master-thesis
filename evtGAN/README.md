@@ -43,11 +43,11 @@ python generate.py --model_dir <timestamp> --model_type torchscript
 
 #### Generator
 
-![Gen](evtGAN/images/Generator.jpg)
+![Gen](master-thesis/evtGAN/images/Generator.jpg)
 
 #### Discriminator
 
-![Dis](evtGAN\images\Discriminator.jpg)
+![Dis](master-thesis/evtGAN/images/Discriminator.jpg)
 
 #### File Descriptions
 
