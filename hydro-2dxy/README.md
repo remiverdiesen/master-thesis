@@ -1,15 +1,17 @@
 # Hydrolical Modelling
 
-This repository contains a Python-based simulation tool for modeling shallow water dynamics on a 2D grid. It solves the shallow water equations to simulate water flow, surface elevation, and related phenomena like precipitation and absorption, suitable for applications such as flood modeling or hydrological studies.
+This repository contains a Python-based simulation tool for modeling shallow water dynamics on a 2D grid. It solves the shallow water equations to simulate water flow, surface elevation, and related phenomena like precipitation and absorption, suitable for applications such as flood modeling.
 
 ### Purpose
 
 The code provides a framework to:
 
-Simulate water flow over varied topography.
-Compute surface elevation using numerical methods (e.g., Newton's method).
-Handle physical processes like precipitation, absorption, and obstacles.
-Visualize results through plots and logs.
+- Simulate water flow over varied topography (see figure).
+- Compute surface elevation using numerical methods (e.g., Newton's method).
+- Handle physical processes like precipitation, absorption, and obstacles.
+- Visualize results through plots and logs.
+
+![flow](hydro-2dxy\images\Flow_domain_and_computational_grid.pngGenerator.jpg)
 
 ### Key Components
 

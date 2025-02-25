@@ -43,11 +43,11 @@ python generate.py --model_dir <timestamp> --model_type torchscript
 
 #### Generator
 
-![Gen](C:\Users\reverd\Repositories\master-thesis\evtGAN\images\Generator.jpg)
+![Gen](evtGAN\images\Generator.jpg)
 
 #### Discriminator
 
-![Dis](C:\Users\reverd\Repositories\master-thesis\evtGAN\images\Discriminator.jpg)
+![Dis](evtGAN\images\Discriminator.jpg)
 
 #### File Descriptions
 
@@ -60,3 +60,11 @@ python generate.py --model_dir <timestamp> --model_type torchscript
 - train.py: Trains the GAN and saves the trained generator.
 - generate.py: Generates synthetic samples using the trained model and saves them as .csv.
 - requirements.txt: Lists required Python packages.
+
+#### Using Synthetic Samples
+
+The synthetic precipitation data can be used for:
+
+- Input to hydrological models for flood event simulation.
+- Statistical analysis of extreme event frequency and intensity.
+- Training other machine learning models for prediction tasks.

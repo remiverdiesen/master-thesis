@@ -9,8 +9,10 @@ This repository provides a Python-based tool for estimating direct water damage 
 The tool is designed to:
 
 - Estimate financial damage (€) to buildings from water intrusion.
-- Model damage based on water depth, building area, and structural features.
+- Model damage based on water depth, building area, and structural features (see figure).
 - Support flood impact assessments for residential properties.
+
+![flow](risk-assessment\images\water depths inside a building.jpg)
 
 ### Key Components
 

@@ -1,33 +1,85 @@
-# Ignore environments
-**/.venv/
-**/.venv_evtGAN/
+# Virtual environments
+.venv/
+.venv_evtGAN/
+*/.venv/
+*/.venv_evtGAN/
 
 # Jupyter Notebook
-.ipynb_checkpoints
+.ipynb_checkpoints/
 
-# Django stuff
+# Logs and temporary files
 *.log
+*.log.*
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Specific configuration and database files
 local_settings.py
 db.sqlite3
+.aws/
+.credentials
 
-# Ignore VSCode settings
-**/.vscode/
+# IDE and editor settings
+.vscode/
+*/.vscode/
+.idea/
+.DS_Store
 
-# Byte-compiled / optimized / DLL files
+# Python compiled and optimized files
 __pycache__/
-**/.pyc
-**/.log
+*.pyc
+*.pyo
+*.pyd
+.PYTHON_VERSION
 
-# Thesis stuff
-**/benchmark
-**/results
-/experiments/
-*.pkl
+# Distribution and packaging
+build/
+dist/
+*.egg*
+*.whl
 
+# Test and coverage reports
+.tox/
+.coverage
+.coverage.*
+.nosetests.*
 
+# Machine learning and GPU-related caches
+.torch/
+.keras/
+.theano/
+
+# Data and experiment directories
 hydro-2dxy/data/
 hydro-2dxy/notebooks/
-
-
 risk-assessment/data/
-risk-assessment/images/
+benchmark/
+results/
+experiments/
+*/benchmark/
+*/results/
+*/experiments/
+
+# AWS and cloud-related files
+.aws/
+*.tfstate
+*.tfstate.backup
+
+# Docker and containerization
+.dockerignore
+Dockerfile.local
+docker-compose.local.yml
+docker/
+
+# Environment and dependency management
+.env
+.flaskenv
+Pipfile
+Pipfile.lock
+poetry.lock
+requirements/local.txt
+
+# Miscellaneous
+*.sqlite
+migrations/
+cache/
