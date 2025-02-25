@@ -19,7 +19,7 @@ The project is divided into three main parts:
 
 ## Modules
 
-- [Spatial-extremes](spatial-extremes/README.md)
+- [Spatial-extremes](evtGAN/README.md)
 - [Hydrological Modelling](hydro-2dxy/README.md)
 - [Risk Assessment](risk-assessment/README.md)
 
